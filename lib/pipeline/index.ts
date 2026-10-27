@@ -1,5 +1,5 @@
 import type { EvidencePack, Finding, Item, MatchedPair } from "./types";
-import { museImageCard, museSparkJSON, sam31Track } from "./models";
+import { museImageCard, museSparkJSON, museSparkText, sam31Track } from "./models";
 import { guidanceFor } from "./guidance";
 
 // Stage 1: frames come from client-side sampling (1 fps) or ffmpeg on upload.
@@ -7,8 +7,23 @@ import { guidanceFor } from "./guidance";
 export const ITEM_PROMPTS = ["wall", "carpet", "floor", "skirting board", "door", "window", "curtains", "worktop", "hob", "oven", "fridge", "sink", "bath", "shower screen", "toilet", "mattress", "sofa", "table", "wardrobe"];
 
 export async function extractItems(videoUrl: string, visit: Item["visit"], room: string): Promise<Item[]> {
-  const tracks = await sam31Track(videoUrl, ITEM_PROMPTS);
-  return tracks.map((t) => ({ id: `${visit}-${room}-${t.id}`, visit, room, label: t.label, bestFrame: { visit, room, t: t.frames[0] ?? 0, url: videoUrl } }));
+  // SAM 3.1 takes one concept per request, so run the item list in parallel batches.
+  const items: Item[] = [];
+  const batches = [];
+  for (let i = 0; i < ITEM_PROMPTS.length; i += 6) batches.push(ITEM_PROMPTS.slice(i, i + 6));
+  for (const batch of batches) {
+    const results = await Promise.all(batch.map((c) => sam31Track({ video_url: videoUrl }, c).then((r) => [c, r] as const)));
+    for (const [label, recs] of results) {
+      const byId = new Map<number, typeof recs>();
+      recs.forEach((r) => byId.set(r.id, [...(byId.get(r.id) ?? []), r]));
+      for (const [oid, rs] of byId) {
+        // best frame = largest confident box
+        const best = rs.reduce((a, b) => ((b.box[2] - b.box[0]) * (b.box[3] - b.box[1]) * (b.conf ?? 1) > (a.box[2] - a.box[0]) * (a.box[3] - a.box[1]) * (a.conf ?? 1) ? b : a));
+        items.push({ id: `${visit}-${room}-${label}-${oid}`, visit, room, label, maskRle: best.mask, bestFrame: { visit, room, t: best.frame, url: videoUrl } });
+      }
+    }
+  }
+  return items;
 }
 
 // Stage 3: match same object across visits (label + embedding cosine; Muse Spark tie-break).
@@ -37,8 +52,8 @@ export async function judge(pair: MatchedPair, tenancyYears: number): Promise<Fi
 // Stage 5: cards + pack.
 export async function buildPack(property: string, findings: Finding[]): Promise<EvidencePack> {
   for (const f of findings.filter((x) => x.verdict !== "no_change")) {
-    f.cardUrl = await museImageCard(`Annotated before/after comparison card: ${f.pair.label}, ${f.verdict}`, [f.pair.before?.bestFrame.url, f.pair.after?.bestFrame.url].filter(Boolean) as string[]);
+    f.cardUrl = await museImageCard(`Clean evidence card graphic titled "${f.pair.room}: ${f.pair.label}" with verdict "${f.verdict.replace("_", " ")}" and the note "${f.description.slice(0, 120)}". Minimal, legible, neutral colours.`);
   }
-  const replyDraft = await museSparkJSON<string>("Draft a polite, firm reply to a landlord's deduction list, citing each finding.", JSON.stringify(findings));
-  return { property, generatedAt: new Date().toISOString(), findings, replyDraft: typeof replyDraft === "string" ? replyDraft : "" };
+  const replyDraft = await museSparkText("Draft a polite, firm reply from a UK tenant to a landlord's deposit deduction list, citing each finding and the deposit scheme's fair wear and tear guidance. Plain British English.", JSON.stringify(findings.map((f) => ({ room: f.pair.room, item: f.pair.label, verdict: f.verdict, description: f.description, apportionmentPct: f.apportionmentPct }))));
+  return { property, generatedAt: new Date().toISOString(), findings, replyDraft };
 }
