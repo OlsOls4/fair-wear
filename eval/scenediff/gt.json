@@ -1,0 +1,457 @@
+{
+ "bedroom_28_bedroom_29": {
+  "scene_type": "bedroom",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "plush_bear_1",
+    "status": "moved",
+    "deformability": null
+   },
+   {
+    "label": "plush_dog_1",
+    "status": "moved",
+    "deformability": null
+   }
+  ]
+ },
+ "living_room_5_living_room_6": {
+  "scene_type": "living_room",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "aromatherapy_candle_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "book_1",
+    "status": "removed",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "laundry_room_1_laundry_room_2": {
+  "scene_type": "washing machine",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "clothes_1",
+    "status": "moved",
+    "deformability": "deformable"
+   }
+  ]
+ },
+ "table_19_table_20": {
+  "scene_type": "table",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "water_bottle_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "apple_pencil_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "airpods_1",
+    "status": "moved",
+    "deformability": "deformable"
+   },
+   {
+    "label": "water_bottle_lid_1",
+    "status": "moved",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "kitchen_16_kitchen_17": {
+  "scene_type": "kitchen",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "monster_energy_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "mtudew_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "mtudew_2",
+    "status": "removed",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "closet_1_closet_2": {
+  "scene_type": "closet",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "trousers_white_1",
+    "status": "moved",
+    "deformability": null
+   },
+   {
+    "label": "trousers_black_1",
+    "status": "moved",
+    "deformability": null
+   },
+   {
+    "label": "shirt_black_1",
+    "status": "moved",
+    "deformability": null
+   },
+   {
+    "label": "jacket_black_1",
+    "status": "moved",
+    "deformability": null
+   }
+  ]
+ },
+ "room_entrance_3_room_entrance_4": {
+  "scene_type": "room entrance",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "white_shoes_1",
+    "status": "moved",
+    "deformability": "deformable"
+   },
+   {
+    "label": "boots_1",
+    "status": "moved",
+    "deformability": "deformable"
+   }
+  ]
+ },
+ "bathroom_9_bathroom_10": {
+  "scene_type": "restroom",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "liquid_hand_soap_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "shaving_razor_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "comb_1",
+    "status": "moved",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "bed_3_bed_4": {
+  "scene_type": "Stationery",
+  "videos": [
+   "original_video1.mov",
+   "original_video2.mov"
+  ],
+  "objects": [
+   {
+    "label": "Marker_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "PaintBrush_1",
+    "status": "added",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "livingroom_1_livingroom_2": {
+  "scene_type": "LivingRoom",
+  "videos": [
+   "original_video1.MOV",
+   "original_video2.MOV"
+  ],
+  "objects": [
+   {
+    "label": "Scale_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "Paper Bag_1",
+    "status": "added",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "office_3_office_4": {
+  "scene_type": "office",
+  "videos": [
+   "original_video1.MOV",
+   "original_video2.MOV"
+  ],
+  "objects": [
+   {
+    "label": "chair_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "spray_1",
+    "status": "removed",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "hallway_3_hallway_4": {
+  "scene_type": "hallway",
+  "videos": [
+   "original_video1.MOV",
+   "original_video2.MOV"
+  ],
+  "objects": [
+   {
+    "label": "Bag_1",
+    "status": "added",
+    "deformability": "rigid"
+   },
+   {
+    "label": "Shoes_1",
+    "status": "added",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "bedroom_26_bedroom_27": {
+  "scene_type": "Room",
+  "videos": [
+   "original_video1.mov",
+   "original_video2.mov"
+  ],
+  "objects": [
+   {
+    "label": "ipad_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "handkerchief_1",
+    "status": "added",
+    "deformability": "rigid"
+   },
+   {
+    "label": "phone_1",
+    "status": "added",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "living_room_39_living_room_40": {
+  "scene_type": "living_room",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "lighter_1",
+    "status": "removed",
+    "deformability": null
+   },
+   {
+    "label": "iclicker_1",
+    "status": "removed",
+    "deformability": null
+   }
+  ]
+ },
+ "laundry_room_3_laundry_room_4": {
+  "scene_type": "laundry_room",
+  "videos": [
+   "original_video1.MOV",
+   "original_video2.MOV"
+  ],
+  "objects": [
+   {
+    "label": "Phone box_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "Mopping pods_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "Shoe box_1",
+    "status": "moved",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "table_23_table_24": {
+  "scene_type": "lab",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "ipad_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "apple_pencil_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "purple_key_chain",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "blue_key_chain",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "red_key_chain",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "green_key_chain",
+    "status": "moved",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "kitchen_14_kitchen_15": {
+  "scene_type": "kitchen",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "gloves_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "glass_cup_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "white_medicine_jar_1",
+    "status": "moved",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "room_entrance_1_room_entrance_2": {
+  "scene_type": "entrace",
+  "videos": [
+   "original_video1.mp4",
+   "original_video2.mp4"
+  ],
+  "objects": [
+   {
+    "label": "blue_shoes_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "white_shoes_1",
+    "status": "moved",
+    "deformability": "deformable"
+   }
+  ]
+ },
+ "bathroom_7_bathroom_8": {
+  "scene_type": "bathroom",
+  "videos": [
+   "original_video1.MOV",
+   "original_video2.MOV"
+  ],
+  "objects": [
+   {
+    "label": "comb_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "wet_wipes_1",
+    "status": "moved",
+    "deformability": "rigid"
+   },
+   {
+    "label": "ring_1",
+    "status": "removed",
+    "deformability": "rigid"
+   }
+  ]
+ },
+ "bed_1_bed_2": {
+  "scene_type": "Stationery",
+  "videos": [
+   "original_video1.mov",
+   "original_video2.mov"
+  ],
+  "objects": [
+   {
+    "label": "paint bottle_1",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "paint bottle_2",
+    "status": "removed",
+    "deformability": "rigid"
+   },
+   {
+    "label": "paint brush_1",
+    "status": "added",
+    "deformability": "rigid"
+   },
+   {
+    "label": "paperclip_1",
+    "status": "added",
+    "deformability": "rigid"
+   }
+  ]
+ }
+}

@@ -1,0 +1,181 @@
+{
+ "summary": {
+  "predictor": "mock",
+  "mock": true,
+  "pairs": 20,
+  "objects": 55,
+  "precision": 0,
+  "recall": 0,
+  "f1": 0,
+  "statusAccuracyOnFound": 0,
+  "budget": {
+   "capUsd": 9,
+   "spentUsd": 0,
+   "calls": 0,
+   "ledger": "/workspace/projects/ca2a37a8-d487-4dd7-ab3b-9fb7b0b8d976/work/fair-wear/data/spend-ledger.json"
+  },
+  "at": "2026-10-28T20:29:02.276Z"
+ },
+ "rows": [
+  {
+   "pair": "bedroom_28_bedroom_29",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "living_room_5_living_room_6",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "laundry_room_1_laundry_room_2",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 1,
+   "pred": []
+  },
+  {
+   "pair": "table_19_table_20",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 4,
+   "pred": []
+  },
+  {
+   "pair": "kitchen_16_kitchen_17",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 3,
+   "pred": []
+  },
+  {
+   "pair": "closet_1_closet_2",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 4,
+   "pred": []
+  },
+  {
+   "pair": "room_entrance_3_room_entrance_4",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "bathroom_9_bathroom_10",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 3,
+   "pred": []
+  },
+  {
+   "pair": "bed_3_bed_4",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "livingroom_1_livingroom_2",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "office_3_office_4",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "hallway_3_hallway_4",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "bedroom_26_bedroom_27",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 3,
+   "pred": []
+  },
+  {
+   "pair": "living_room_39_living_room_40",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "laundry_room_3_laundry_room_4",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 3,
+   "pred": []
+  },
+  {
+   "pair": "table_23_table_24",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 6,
+   "pred": []
+  },
+  {
+   "pair": "kitchen_14_kitchen_15",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 3,
+   "pred": []
+  },
+  {
+   "pair": "room_entrance_1_room_entrance_2",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 2,
+   "pred": []
+  },
+  {
+   "pair": "bathroom_7_bathroom_8",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 3,
+   "pred": []
+  },
+  {
+   "pair": "bed_1_bed_2",
+   "tp": 0,
+   "statusHits": 0,
+   "nPred": 0,
+   "nTrue": 4,
+   "pred": []
+  }
+ ]
+}

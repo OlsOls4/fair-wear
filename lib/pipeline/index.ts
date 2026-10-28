@@ -6,37 +6,29 @@ import { guidanceFor } from "./guidance";
 // Stage 2: SAM 3.1 tracks rental-relevant items per room video.
 export const ITEM_PROMPTS = ["wall", "carpet", "floor", "skirting board", "door", "window", "curtains", "worktop", "hob", "oven", "fridge", "sink", "bath", "shower screen", "toilet", "mattress", "sofa", "table", "wardrobe"];
 
-export async function extractItems(videoUrl: string, visit: Item["visit"], room: string): Promise<Item[]> {
+export async function extractItems(videoUrl: string, visit: Item["visit"], room: string, prompts: string[] = ITEM_PROMPTS, frames = 900): Promise<Item[]> {
   // SAM 3.1 takes one concept per request, so run the item list in parallel batches.
   const items: Item[] = [];
   const batches = [];
-  for (let i = 0; i < ITEM_PROMPTS.length; i += 6) batches.push(ITEM_PROMPTS.slice(i, i + 6));
+  for (let i = 0; i < prompts.length; i += 6) batches.push(prompts.slice(i, i + 6));
   for (const batch of batches) {
-    const results = await Promise.all(batch.map((c) => sam31Track({ video_url: videoUrl }, c).then((r) => [c, r] as const)));
+    const results = await Promise.all(batch.map((c) => sam31Track({ video_url: videoUrl }, c, frames).then((r) => [c, r] as const)));
     for (const [label, recs] of results) {
       const byId = new Map<number, typeof recs>();
       recs.forEach((r) => byId.set(r.id, [...(byId.get(r.id) ?? []), r]));
       for (const [oid, rs] of byId) {
         // best frame = largest confident box
         const best = rs.reduce((a, b) => ((b.box[2] - b.box[0]) * (b.box[3] - b.box[1]) * (b.conf ?? 1) > (a.box[2] - a.box[0]) * (a.box[3] - a.box[1]) * (a.conf ?? 1) ? b : a));
-        items.push({ id: `${visit}-${room}-${label}-${oid}`, visit, room, label, maskRle: best.mask, bestFrame: { visit, room, t: best.frame, url: videoUrl } });
+        const box = best.w && best.h ? ([best.box[0] / best.w, best.box[1] / best.h, best.box[2] / best.w, best.box[3] / best.h] as [number, number, number, number]) : undefined;
+        items.push({ id: `${visit}-${room}-${label}-${oid}`, visit, room, label, box, maskRle: best.mask, bestFrame: { visit, room, t: best.frame, url: videoUrl } });
       }
     }
   }
   return items;
 }
 
-// Stage 3: match same object across visits (label + embedding cosine; Muse Spark tie-break).
-export function matchItems(before: Item[], after: Item[]): MatchedPair[] {
-  const used = new Set<string>();
-  const pairs: MatchedPair[] = before.map((b) => {
-    const a = after.find((x) => !used.has(x.id) && x.room === b.room && x.label === b.label);
-    if (a) used.add(a.id);
-    return { room: b.room, label: b.label, before: b, after: a, similarity: a ? 1 : 0 };
-  });
-  after.filter((a) => !used.has(a.id)).forEach((a) => pairs.push({ room: a.room, label: a.label, after: a, similarity: 0 }));
-  return pairs;
-}
+// Stage 3: matching lives in ./matching (label + appearance + position, greedy one-to-one).
+export { matchItems, changeStatus, normLabel } from "./matching";
 
 // Stage 4: judge each pair against scheme guidance.
 export async function judge(pair: MatchedPair, tenancyYears: number): Promise<Finding> {

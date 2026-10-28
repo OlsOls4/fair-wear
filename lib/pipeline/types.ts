@@ -5,6 +5,8 @@ export interface Frame { visit: Visit; room: string; t: number; url: string }
 export interface Item {
   id: string; visit: Visit; room: string; label: string;      // e.g. "carpet", "kitchen worktop"
   maskRle?: string; bestFrame: Frame; embedding?: number[];
+  box?: [number, number, number, number];                     // normalised 0..1 in bestFrame
+  moved?: boolean;                                            // set by Muse Spark pair check
 }
 export interface MatchedPair { room: string; label: string; before?: Item; after?: Item; similarity: number }
 export interface Finding {

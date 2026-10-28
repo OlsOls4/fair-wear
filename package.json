@@ -16,6 +16,7 @@
   "devDependencies": {
     "@types/node": "22.18.8",
     "@types/react": "19.1.15",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3"
   }
 }
