@@ -1,0 +1,23 @@
+:root { --bg:#faf8f4; --ink:#1d2433; --mute:#667085; --line:#e4e0d6; --ok:#2f7d4f; --warn:#b7791f; --bad:#b42318; --info:#2b5fb4; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--info); }
+.wrap { max-width: 960px; margin: 0 auto; padding: 40px 20px 80px; }
+.banner { background:#fff4d6; border:1px solid #f0d58a; color:#6b4d00; padding:10px 14px; border-radius:10px; font-size:14px; margin:16px 0; }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:14px; }
+.card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; }
+.card h3 { margin:0 0 4px; font-size:16px; text-transform:capitalize; }
+.room { color:var(--mute); font-size:13px; margin-bottom:10px; }
+.badge { display:inline-block; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px; color:#fff; }
+.v-damage{background:var(--bad)} .v-fair_wear{background:var(--ok)} .v-cleaning{background:var(--warn)} .v-no_change{background:#8a94a6} .v-missing{background:#7a3db8} .v-added{background:var(--info)}
+.row { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+.chip { border:1px solid var(--line); background:#fff; border-radius:99px; padding:6px 12px; font-size:13px; cursor:pointer; }
+.chip.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+.meta { font-size:13px; color:var(--mute); margin-top:10px; line-height:1.5; }
+.bar { height:6px; background:#eee9dc; border-radius:99px; overflow:hidden; margin-top:6px; }
+.bar > i { display:block; height:100%; background:var(--bad); }
+pre.reply { white-space:pre-wrap; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; font:inherit; line-height:1.55; }
+.btn { display:inline-block; background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; text-decoration:none; font-weight:600; border:0; cursor:pointer; font-size:15px; }
+.pair { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0; }
+.pair img { width:100%; border-radius:8px; border:1px solid var(--line); display:block; }
+.pair figcaption { font-size:11px; color:var(--mute); }

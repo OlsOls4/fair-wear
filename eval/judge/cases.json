@@ -1,0 +1,16 @@
+{
+  "note": "Hand-labelled synthetic cases (labels written before any model run). Scene images are generated and labelled 'simulated'. Expected apportionment is computed by lib/pipeline/guidance.ts for tenancyYears=2, ageAtMoveInYears=0.",
+  "tenancyYears": 2,
+  "cases": [
+    { "id": "c01", "room": "Bedroom", "item": "carpet", "change": "Light flattening and slight fade in a path from door to bed", "expected": "fair_wear" },
+    { "id": "c02", "room": "Bedroom", "item": "wall", "change": "Two small picture-hook holes above the bed", "expected": "fair_wear" },
+    { "id": "c03", "room": "Bedroom", "item": "wall", "change": "A 6 cm gouge in the plaster behind the door", "expected": "damage" },
+    { "id": "c04", "room": "Living room", "item": "sofa", "change": "Seat cushions slightly compressed", "expected": "fair_wear" },
+    { "id": "c05", "room": "Living room", "item": "carpet", "change": "Large red wine stain near the coffee table", "expected": "damage" },
+    { "id": "c06", "room": "Living room", "item": "curtains", "change": "No visible change; different daylight", "expected": "no_change" },
+    { "id": "c07", "room": "Kitchen", "item": "oven", "change": "Baked-on grease inside the door and tray", "expected": "cleaning" },
+    { "id": "c08", "room": "Kitchen", "item": "worktop", "change": "Round burn mark from a hot pan", "expected": "damage" },
+    { "id": "c09", "room": "Bathroom", "item": "shower screen", "change": "Limescale film across the glass", "expected": "cleaning" },
+    { "id": "c10", "room": "Bathroom", "item": "table", "change": "Small bathroom stool present before, absent after", "expected": "missing" }
+  ]
+}

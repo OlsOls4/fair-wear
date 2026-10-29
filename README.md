@@ -24,3 +24,4 @@ Hackathon rules require new work. Before kickoff (15 Oct 2026) I wrote the plan 
 
 - 26–27 Oct: Meta Model API wrappers (SAM 3.1 wire parser, Muse Spark, Muse Image), rules digest.
 - 28 Oct: hard budget guard, ffmpeg frame sampler with Laplacian sharpness filter, label/appearance/position matcher, SceneDiff SD-V ground truth + eval harness.
+- 29 Oct: judge prompt + JSON-schema validation of Muse Spark output (one retry), deterministic useful-life apportionment (`guidance.ts`, `npx tsx scripts/test-judge.ts`), 10 hand-labelled synthetic cases (`eval/judge/cases.json`), findings board + upload flow + reply-draft UI (sample data clearly labelled; real model runs pending key access).

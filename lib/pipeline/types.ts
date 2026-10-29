@@ -15,6 +15,7 @@ export interface Finding {
   usefulLifeYears?: number; ageYears?: number; tenancyYears?: number;
   apportionmentPct?: number;           // share a tenant could fairly bear, 0-100
   guidanceRefs: string[];              // e.g. "TDS: fair wear and tear guide"
+  simulated?: boolean;                 // true when produced in MOCK mode or from planted/generated demo data
   cardUrl?: string;                    // Muse Image comparison card
 }
 export interface EvidencePack { property: string; generatedAt: string; findings: Finding[]; replyDraft: string }
