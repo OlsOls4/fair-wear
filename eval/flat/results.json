@@ -1,0 +1,80 @@
+{
+ "planted": 8,
+ "detected": 6,
+ "exactVerdict": 4,
+ "damagePlanted": 4,
+ "damageFound": 3,
+ "decoys": 2,
+ "decoysWronglyDamage": 1,
+ "unplantedItemsChecked": 9,
+ "falseAlarms": 1,
+ "falseAlarmItems": [
+  "living-room/wall: fair_wear"
+ ],
+ "rows": [
+  {
+   "room": "bedroom",
+   "item": "wall",
+   "planted": "damage",
+   "got": "damage",
+   "detected": true,
+   "exact": true
+  },
+  {
+   "room": "bedroom",
+   "item": "carpet",
+   "planted": "fair_wear",
+   "got": "damage",
+   "detected": true,
+   "exact": false
+  },
+  {
+   "room": "living-room",
+   "item": "carpet",
+   "planted": "damage",
+   "got": "damage",
+   "detected": true,
+   "exact": true
+  },
+  {
+   "room": "living-room",
+   "item": "curtains",
+   "planted": "fair_wear",
+   "got": "no_change",
+   "detected": false,
+   "exact": false
+  },
+  {
+   "room": "kitchen",
+   "item": "worktop",
+   "planted": "damage",
+   "got": "damage",
+   "detected": true,
+   "exact": true
+  },
+  {
+   "room": "kitchen",
+   "item": "oven",
+   "planted": "cleaning",
+   "got": "cleaning",
+   "detected": true,
+   "exact": true
+  },
+  {
+   "room": "bathroom",
+   "item": "bath",
+   "planted": "damage",
+   "got": "cleaning",
+   "detected": true,
+   "exact": false
+  },
+  {
+   "room": "bathroom",
+   "item": "sealant",
+   "planted": "cleaning",
+   "got": "not_segmented",
+   "detected": false,
+   "exact": false
+  }
+ ]
+}

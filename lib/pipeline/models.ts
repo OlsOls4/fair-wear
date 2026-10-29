@@ -8,7 +8,8 @@ const KEY = process.env.MODEL_API_KEY ?? process.env.META_API_KEY;
 export const MOCK = !KEY || process.env.MOCK === "1" || process.env.FAIRWEAR_ALLOW_PAID !== "1" || !!process.env.VERCEL;
 export const SPARK_MODEL = process.env.SPARK_MODEL ?? "muse-spark-1.3";
 
-const headers = () => ({ Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" });
+// In the sandbox the platform injects the credential on the wire, so MODEL_API_KEY=injected sends no Authorization header.
+const headers = (): Record<string, string> => (KEY === "injected" ? { "Content-Type": "application/json" } : { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" });
 
 async function post(path: string, body: unknown, accept = "application/json") {
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -43,15 +44,22 @@ export function parseSamLines(text: string): SamRecord[] {
 async function samCall(prompt: string, media: { image_url?: string; video_url?: string; file_id?: string }, kind: "image" | "video", frames = 1) {
   const settle = reserve(`sam-3.1-${kind}`, kind === "image" ? PRICES.samImage : Math.max(1, frames) * PRICES.samVideoPerFrame, prompt);
   const part = kind === "image" ? { type: "input_image", ...media } : { type: "input_video", ...media };
+  // SAM 3.1 only returns its special-token text over a stream (a non-stream call comes back empty but is still billed).
   const r = await post("/responses", {
     model: "sam-3.1",
     input: [{ type: "message", role: "user", content: [{ type: "input_text", text: prompt }, part] }],
-    stream: false,
+    stream: true,
     metadata: { include_confidence: "true", mask_encoding: "one_bit" },
-  });
-  const j = await r.json();
+  }, "text/event-stream");
+  const raw = await r.text();
   settle();
-  const text: string = j.output_text ?? (j.output ?? []).flatMap((o: any) => o.content ?? []).map((c: any) => c.text ?? "").join("\n");
+  let text = "";
+  for (const line of raw.split("\n")) {
+    if (!line.startsWith("data: ")) continue;
+    const d = line.slice(6).trim();
+    if (d === "[DONE]") break;
+    try { const ev = JSON.parse(d); if (ev.type === "response.output_text.delta" && ev.delta) text += ev.delta; } catch { /* ignore keep-alives */ }
+  }
   return parseSamLines(text ?? "");
 }
 
@@ -67,7 +75,7 @@ export async function sam31Track(video: { video_url?: string; file_id?: string }
 }
 
 // ---------- Muse Spark (vision + structured output) ----------
-const MAX_OUT = 800;
+const MAX_OUT = 3000; // Muse Spark spends most of its output budget on hidden reasoning tokens; a low cap returns empty content
 // Worst-case reservation: ~1 token per 3 chars, 2,000 tokens per image, full max_tokens out.
 function estimateSpark(text: string, images: number, maxOut: number) {
   return sparkCost(Math.ceil(text.length / 3) + images * 2000, maxOut);
@@ -102,4 +110,21 @@ export async function museImageCard(prompt: string): Promise<string> {
   const r = await post("/images/generations", { model: "muse-image-1.0", prompt, n: 1 });
   const d = (await r.json()).data?.[0] ?? {};
   return d.url ?? (d.b64_json ? `data:image/png;base64,${d.b64_json}` : "");
+}
+
+// ---------- Muse Image raw (used by scripts/gen-flat.ts to build the simulated demo flat) ----------
+// Returns image bytes (b64_json). `refs` are data: URLs or https URLs; with refs it calls /images/edits.
+export async function museImageRaw(prompt: string, refs: string[] = [], size = "1280x720"): Promise<Buffer> {
+  if (MOCK) throw new Error("museImageRaw needs FAIRWEAR_ALLOW_PAID=1 and a key (sandbox only)");
+  const settle = reserve("muse-image", PRICES.museImage, prompt.slice(0, 80));
+  let r: Response;
+  try { r = refs.length
+    ? await post("/images/edits", { model: "muse-image-1.0", prompt, images: refs.map((u) => ({ image_url: u })), size, n: 1, response_format: "b64_json" })
+    : await post("/images/generations", { model: "muse-image-1.0", prompt, size, n: 1, response_format: "b64_json" });
+  } catch (e) { settle(0); throw e; } // a refused/failed call was not billed
+  const j = await r.json();
+  settle(PRICES.museImage);
+  const d = j.data?.[0];
+  if (!d?.b64_json) throw new Error("no image in response: " + JSON.stringify(j).slice(0, 300));
+  return Buffer.from(d.b64_json, "base64");
 }

@@ -1,0 +1,66 @@
+[
+ {
+  "room": "bedroom",
+  "simulated": true,
+  "moveIn": "/demo/flat/bedroom-move-in.jpg",
+  "moveOut": "/demo/flat/bedroom-move-out.jpg",
+  "planted": [
+   {
+    "item": "wall",
+    "verdict": "damage"
+   },
+   {
+    "item": "carpet",
+    "verdict": "fair_wear"
+   }
+  ]
+ },
+ {
+  "room": "living-room",
+  "simulated": true,
+  "moveIn": "/demo/flat/living-room-move-in.jpg",
+  "moveOut": "/demo/flat/living-room-move-out.jpg",
+  "planted": [
+   {
+    "item": "carpet",
+    "verdict": "damage"
+   },
+   {
+    "item": "curtains",
+    "verdict": "fair_wear"
+   }
+  ]
+ },
+ {
+  "room": "kitchen",
+  "simulated": true,
+  "moveIn": "/demo/flat/kitchen-move-in.jpg",
+  "moveOut": "/demo/flat/kitchen-move-out.jpg",
+  "planted": [
+   {
+    "item": "worktop",
+    "verdict": "damage"
+   },
+   {
+    "item": "oven",
+    "verdict": "cleaning"
+   }
+  ]
+ },
+ {
+  "room": "bathroom",
+  "simulated": true,
+  "moveIn": "/demo/flat/bathroom-move-in.jpg",
+  "moveOut": "/demo/flat/bathroom-move-out.jpg",
+  "planted": [
+   {
+    "item": "bath",
+    "verdict": "damage"
+   },
+   {
+    "item": "sealant",
+    "verdict": "cleaning"
+   }
+  ]
+ }
+]

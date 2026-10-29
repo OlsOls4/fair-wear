@@ -11,7 +11,7 @@ export default function Upload() {
   async function run() {
     setResult(null);
     for (let i = 0; i < STAGES.length; i++) { setStage(i); await new Promise((r) => setTimeout(r, 700)); }
-    const res = await fetch("/demo/sample.json").then((r) => r.json());
+    const res = await fetch("/demo/flat-results.json").then((r) => r.json());
     setStage(STAGES.length);
     setResult({ property: res.property, findings: res.findings, mock: true });
   }
@@ -33,7 +33,7 @@ export default function Upload() {
         <button className="btn" disabled={!ready || (stage >= 0 && stage < STAGES.length)} onClick={run} style={{ opacity: ready ? 1 : 0.5 }}>Analyse</button>
       </div>
       {stage >= 0 && <ol style={{ lineHeight: 1.9 }}>{STAGES.map((s, i) => <li key={s} style={{ opacity: i <= stage ? 1 : 0.35 }}>{i < stage || stage === STAGES.length ? "✓" : i === stage ? "…" : "·"} {s}</li>)}</ol>}
-      {result && <Board property={result.property} findings={result.findings} banner="Pre-computed sample, not an analysis of your files. All scenes simulated." />}
+      {result && <Board property={result.property} findings={result.findings} banner="Pre-computed pipeline run on the simulated demo flat, not an analysis of your files. All scenes simulated." />}
     </main>
   );
 }
