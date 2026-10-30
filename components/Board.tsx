@@ -17,7 +17,7 @@ export function replyDraft(property: string, fs: F[]) {
   return `Re: deposit deductions, ${property}\n\nThank you for the deduction list. I have compared my dated move-in and move-out walkthrough videos item by item. My response:\n\n${lines.join("\n")}\n\nPlease provide invoices for all claimed costs. I am happy to use the deposit scheme's free dispute resolution if we cannot agree.`;
 }
 
-export default function Board({ property, findings, banner }: { property: string; findings: F[]; banner?: string }) {
+export default function Board({ property, findings, banner, reply, pdf }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string }) {
   const [filter, setFilter] = useState("all");
   const [showReply, setShowReply] = useState(false);
   const counts = useMemo(() => { const c: Record<string, number> = {}; findings.forEach((f) => (c[f.verdict] = (c[f.verdict] ?? 0) + 1)); return c; }, [findings]);
@@ -46,10 +46,10 @@ export default function Board({ property, findings, banner }: { property: string
         ))}
       </div>
       <div className="row" style={{ marginTop: 24 }}>
-        <button className="btn" onClick={() => setShowReply((s) => !s)}>{showReply ? "Hide" : "Draft"} reply to landlord</button>
-        <button className="btn" onClick={() => window.print()}>Print / save evidence pack</button>
+        <button className="btn" onClick={() => setShowReply((s) => !s)}>{showReply ? "Hide" : "Show"} reply to landlord{reply ? " (written by Muse Spark)" : ""}</button>
+        {pdf ? <a className="btn" href={pdf} download>Download evidence pack (PDF)</a> : <button className="btn" onClick={() => window.print()}>Print / save evidence pack</button>}
       </div>
-      {showReply && <pre className="reply">{replyDraft(property, findings)}</pre>}
+      {showReply && <pre className="reply">{reply ?? replyDraft(property, findings)}</pre>}
     </div>
   );
 }

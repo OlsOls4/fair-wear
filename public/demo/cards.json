@@ -1,0 +1,53 @@
+{
+ "cards": [
+  {
+   "ref": "E1",
+   "card": "/demo/cards/E1.jpg",
+   "room": "bedroom",
+   "item": "carpet",
+   "verdict": "damage"
+  },
+  {
+   "ref": "E2",
+   "card": "/demo/cards/E2.jpg",
+   "room": "bedroom",
+   "item": "wall",
+   "verdict": "damage"
+  },
+  {
+   "ref": "E3",
+   "card": "/demo/cards/E3.jpg",
+   "room": "living-room",
+   "item": "carpet",
+   "verdict": "damage"
+  },
+  {
+   "ref": "E4",
+   "card": "/demo/cards/E4.jpg",
+   "room": "kitchen",
+   "item": "worktop",
+   "verdict": "damage"
+  },
+  {
+   "ref": "E5",
+   "card": "/demo/cards/E5.jpg",
+   "room": "kitchen",
+   "item": "oven",
+   "verdict": "cleaning"
+  },
+  {
+   "ref": "E6",
+   "card": "/demo/cards/E6.jpg",
+   "room": "bathroom",
+   "item": "bath",
+   "verdict": "cleaning"
+  },
+  {
+   "ref": "E7",
+   "card": "/demo/cards/E7.jpg",
+   "room": "living-room",
+   "item": "wall",
+   "verdict": "fair_wear"
+  }
+ ]
+}

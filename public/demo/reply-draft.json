@@ -1,0 +1,77 @@
+{
+ "model": "muse-spark",
+ "simulated": true,
+ "refs": [
+  {
+   "ref": "E1",
+   "room": "bedroom",
+   "item": "carpet",
+   "verdict": "damage",
+   "what": "The bedroom carpet developed a large dark stain in front of the wardrobes during the two-year tenancy that was not present at move-in.",
+   "usefulLifeYears": 7,
+   "tenancyYears": 2,
+   "tenantSharePct": 71
+  },
+  {
+   "ref": "E2",
+   "room": "bedroom",
+   "item": "wall",
+   "verdict": "damage",
+   "what": "The bedroom wall shows new scuffed and peeling paint patches to the right of the radiator at move-out that were not visible at move-in.",
+   "usefulLifeYears": 4,
+   "tenancyYears": 2,
+   "tenantSharePct": 50
+  },
+  {
+   "ref": "E3",
+   "room": "living-room",
+   "item": "carpet",
+   "verdict": "damage",
+   "what": "A large dark brown stain is present in the middle of the living-room carpet at move-out that was clean and uniform at move-in.",
+   "usefulLifeYears": 7,
+   "tenancyYears": 2,
+   "tenantSharePct": 71
+  },
+  {
+   "ref": "E4",
+   "room": "kitchen",
+   "item": "worktop",
+   "verdict": "damage",
+   "what": "After image shows dark circular burn marks on the wooden worktop beside the hob that were not present before.",
+   "usefulLifeYears": 15,
+   "tenancyYears": 2,
+   "tenantSharePct": 87
+  },
+  {
+   "ref": "E5",
+   "room": "kitchen",
+   "item": "oven",
+   "verdict": "cleaning",
+   "what": "The oven front was clean at move-in but is covered in grease splatters and food marks at move-out that cleaning would remove.",
+   "usefulLifeYears": 10,
+   "tenancyYears": 2,
+   "tenantSharePct": 100
+  },
+  {
+   "ref": "E6",
+   "room": "bathroom",
+   "item": "bath",
+   "verdict": "cleaning",
+   "what": "The bath is intact but the white sealant has developed heavy black mould along the edges that was clean before.",
+   "usefulLifeYears": 20,
+   "tenancyYears": 2,
+   "tenantSharePct": 100
+  },
+  {
+   "ref": "E7",
+   "room": "living-room",
+   "item": "wall",
+   "verdict": "fair_wear",
+   "what": "The living-room wall shows a few extra small nail-hole marks and light scuffs after two years consistent with normal use.",
+   "usefulLifeYears": 4,
+   "tenancyYears": 2,
+   "tenantSharePct": 0
+  }
+ ],
+ "text": "Dear Landlord,\n\nRe: Demo flat (simulated) – deposit deductions after 2-year tenancy\n\nThank you for your deduction list. I reply below to each item as claimed, referring to the photo evidence pack.\n\nE1 – bedroom carpet stain in front of wardrobes: Part-accept. This is damage beyond fair wear and tear. To avoid betterment, cost must be apportioned by useful life. I accept 71%, based on 2 years' use of a 7-year life.\n\nE2 – bedroom wall scuffed/peeling paint right of radiator: Part-accept. This is damage, not fair wear and tear. I accept 50%, based on 2 years' use of a 4-year life.\n\nE3 – living-room carpet large brown stain: Part-accept. This is damage. To avoid betterment, I accept 71%, based on 2 years' use of a 7-year life.\n\nE4 – kitchen worktop burn marks by hob: Part-accept. This is damage. To avoid betterment, I accept 87%, based on 2 years' use of a 15-year life.\n\nE5 – kitchen oven grease and food marks: Accept. This is cleaning, not fair wear and tear. I accept 100% of the reasonable cleaning cost.\n\nE6 – bathroom bath sealant black mould: Accept. This is cleaning. I accept 100% of the reasonable cleaning cost.\n\nE7 – living-room wall nail holes and light scuffs: Dispute. After two years this is fair wear and tear from normal use. I accept 0%.\n\nPlease send invoices for the cleaning and like-for-like replacement claimed, with the above apportionment applied. If we cannot agree, I may use the scheme's free dispute resolution.\n\nKind regards,\nTenant"
+}

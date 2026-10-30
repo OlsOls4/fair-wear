@@ -96,8 +96,8 @@ export async function museSparkJSON<T>(system: string, user: string, imageUrls: 
 
 export async function museSparkText(system: string, user: string): Promise<string> {
   if (MOCK) return "";
-  const settle = reserve("muse-spark", estimateSpark(system + user, 0, 2000), "text");
-  const r = await post("/chat/completions", { model: SPARK_MODEL, max_tokens: 2000, messages: [{ role: "system", content: system }, { role: "user", content: user }] });
+  const settle = reserve("muse-spark", estimateSpark(system + user, 0, 5000), "text");
+  const r = await post("/chat/completions", { model: SPARK_MODEL, max_tokens: 5000, messages: [{ role: "system", content: system }, { role: "user", content: user }] });
   const j = await r.json();
   settle(j.usage ? sparkCost(j.usage.prompt_tokens ?? 0, j.usage.completion_tokens ?? 0) : undefined);
   return j.choices?.[0]?.message?.content ?? "";
