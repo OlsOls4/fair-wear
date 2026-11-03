@@ -41,6 +41,21 @@ async function main() {
   const noChange = demoFindings.find((f) => f.verdict === "no_change")!;
   await act(async () => root.render(<Board property={demoData.property} findings={demoFindings} reply="ARCHIVE SENTINEL" pdf="/original.pdf" />));
   ok("exact default counts", () => assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13"));
+  ok("responses have item-specific labels and linked explanations", () => {
+    for (const select of host.querySelectorAll("select")) {
+      const labelled = select.getAttribute("aria-labelledby")!.split(" ").map((id) => document.getElementById(id));
+      const described = select.getAttribute("aria-describedby")!.split(" ").map((id) => document.getElementById(id));
+      assert.ok(labelled.length >= 3 && labelled.every(Boolean));
+      assert.ok(described.length >= 2 && described.every(Boolean));
+      assert.ok(described.some((element) => element!.textContent!.includes("Finding reference:")));
+    }
+    assert.ok(host.querySelector('[role="group"][aria-label="Filter model verdicts"]'));
+  });
+  ok("cached percentages are withheld when item assumptions are missing", () => {
+    const calculation = card("bedroom-carpet-0-0").querySelector('[data-testid="replacement-calculation"]')!;
+    assert.match(calculation.textContent!, /No percentage estimated/);
+    assert.doesNotMatch(calculation.textContent!, /71%/);
+  });
   ok("cleaning is not labelled as useful-life apportionment", () => {
     assert.ok(!card(cleaning.id).textContent!.includes("Illustrative useful-life share"));
     assert.ok(card(cleaning.id).textContent!.includes("does not depreciate cleaning costs"));
@@ -90,11 +105,17 @@ async function main() {
   ok("evidence opens the selected image using mocked dialog API", () => {
     assert.equal(dialog.open, true);
     assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg");
+    assert.match(dialog.textContent!, /Simulated, precomputed evidence/);
+    const original = dialog.querySelector("a")!;
+    assert.equal(original.getAttribute("target"), "_blank");
+    assert.equal(original.getAttribute("rel"), "noopener noreferrer");
+    assert.equal(original.getAttribute("href"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg");
   });
   const evidenceButton = (label: string) => Array.from(dialog.querySelectorAll("button")).find((b) => b.textContent === label)!;
   await act(async () => evidenceButton("Move-out").click());
   ok("evidence switches to the matching after image", () => assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_out-carpet-0.jpg"));
   await act(async () => evidenceButton("Close").click());
+  ok("app restores focus to the evidence opener", () => assert.equal(document.activeElement, enlarge));
   await act(async () => enlarge.click());
   ok("evidence closes and reopens using mocked dialog API", () => { assert.equal(dialog.open, true); assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg"); });
   await act(async () => evidenceButton("Close").click());
@@ -105,6 +126,23 @@ async function main() {
   await click("Hide sample findings");
   await click("Show sample findings");
   ok("sample hide/show preserves choices", () => { assert.equal((host.querySelector("#sample-results") as HTMLElement).hidden, false); assert.equal(card(cleaning.id).querySelector("select")!.value, "Dispute"); });
+  const supplied = { ...demoFindings[0], id: "bathroom-shower screen-0", ageYears: 0, calculationBasis: { usefulLifeYears: 7, qualityBasis: "Supplied illustration, not verified" }, apportionmentPct: 999 };
+  await act(async () => root.render(<Board property="Illustration" findings={[supplied]} />));
+  ok("finding references containing spaces do not break DOM associations", () => {
+    assert.ok(Array.from(host.querySelectorAll("[id]")).every((element) => !/\s/.test(element.id)));
+    for (const attribute of ["aria-labelledby", "aria-describedby"]) {
+      for (const element of host.querySelectorAll(`[${attribute}]`)) {
+        assert.ok(element.getAttribute(attribute)!.split(" ").every((id) => document.getElementById(id)));
+      }
+    }
+    assert.match(host.textContent!, /Finding reference: bathroom-shower screen-0/);
+  });
+  ok("complete inputs show recalculated illustration rather than cached percentage", () => {
+    const text = host.querySelector('[data-testid="replacement-calculation"]')!.textContent!;
+    assert.match(text, /Remaining-life illustration: 71%/);
+    assert.doesNotMatch(text, /999%/);
+    assert.match(text, /not verified facts or tenant liability/);
+  });
   await act(async () => root.unmount());
   dom.window.close();
   console.log(`Passed ${checks} DOM checks. Native API mocks do not establish browser behavior.`);

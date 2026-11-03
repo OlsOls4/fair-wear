@@ -1,6 +1,6 @@
-import type { EvidencePack, Finding, Item, MatchedPair, Verdict } from "./types";
+import type { CalculationBasis, EvidencePack, Finding, Item, MatchedPair, Verdict } from "./types";
 import { MOCK, museImageCard, museSparkJSON, museSparkText, sam31Track } from "./models";
-import { apportion, guidanceFor } from "./guidance";
+import { apportion, calculateShare, guidanceFor } from "./guidance";
 import { JUDGE_SCHEMA, validateJudge, type JudgeOut } from "./schema";
 import { JUDGE_SYSTEM, REPLY_SYSTEM } from "./prompts";
 
@@ -33,7 +33,7 @@ export async function extractItems(videoUrl: string, visit: Item["visit"], room:
 export { matchItems, changeStatus, normLabel } from "./matching";
 
 // Stage 4: judge each pair. Muse Spark classifies (schema-validated, one retry); guidance.ts apportions deterministically.
-export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveInYears = 0): Promise<Finding> {
+export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveInYears?: number, basis?: CalculationBasis): Promise<Finding> {
   const g = guidanceFor(pair.label);
   const urls = [pair.before?.bestFrame.url, pair.after?.bestFrame.url].filter(Boolean) as string[];
   const user = JSON.stringify({ item: pair.label, room: pair.room, tenancyYears, guidance: g.note, before: pair.before ? "BEFORE image attached first" : "no BEFORE crop", after: pair.after ? "AFTER image attached" : "no AFTER crop" });
@@ -50,8 +50,9 @@ export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveIn
   const verdict = out ? (structural && out.verdict !== structural && out.confidence < 0.7 ? structural : out.verdict) : structural ?? "no_change";
   return {
     pair, verdict, confidence: out?.confidence ?? 0, description: out?.description ?? (MOCK ? "Mock mode: no model judgement." : `Judge failed validation: ${lastErr}`),
-    simulated: MOCK, usefulLifeYears: g.usefulLifeYears, ageYears: ageAtMoveInYears, tenancyYears,
-    apportionmentPct: apportion(verdict, pair.label, tenancyYears, ageAtMoveInYears), guidanceRefs: g.refs,
+    simulated: MOCK, usefulLifeYears: basis?.usefulLifeYears, ageYears: ageAtMoveInYears, tenancyYears,
+    calculationBasis: basis, shareCalculation: calculateShare(verdict, tenancyYears, ageAtMoveInYears, basis),
+    apportionmentPct: apportion(verdict, pair.label, tenancyYears, ageAtMoveInYears, basis), guidanceRefs: g.refs,
   };
 }
 
@@ -60,6 +61,11 @@ export async function buildPack(property: string, findings: Finding[]): Promise<
   for (const f of findings.filter((x) => x.verdict !== "no_change")) {
     f.cardUrl = await museImageCard(`Clean evidence card graphic titled "${f.pair.room}: ${f.pair.label}" with verdict "${f.verdict.replace("_", " ")}" and the note "${f.description.slice(0, 120)}". Minimal, legible, neutral colours.`);
   }
-  const replyDraft = await museSparkText(REPLY_SYSTEM, JSON.stringify(findings.map((f) => ({ room: f.pair.room, item: f.pair.label, verdict: f.verdict, description: f.description, apportionmentPct: f.apportionmentPct }))));
+  const replyDraft = await museSparkText(`${REPLY_SYSTEM} Do not infer acceptance or liability from a classification or percentage. Any remaining-life maths is illustrative only. Missing inputs require evidence, not a guessed number.`, JSON.stringify(findings.map((f) => ({
+    room: f.pair.room, item: f.pair.label, verdict: f.verdict, description: f.description,
+    // Recalculate rather than trusting an old percentage stored without its assumptions.
+    shareCalculation: calculateShare(f.verdict, f.tenancyYears!, f.ageYears, f.calculationBasis),
+    calculationBasis: f.calculationBasis, ageAtMoveInYears: f.ageYears, tenancyYears: f.tenancyYears,
+  }))));
   return { property, generatedAt: new Date().toISOString(), findings, replyDraft };
 }

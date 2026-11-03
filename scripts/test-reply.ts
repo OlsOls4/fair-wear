@@ -81,6 +81,14 @@ check("simulated data always carries a disclaimer, even when excluded", () => {
   assert.doesNotMatch(replyDraft("Real property", [finding("real", "damage")]), /SIMULATED DEMO/);
 });
 
+check("precomputed sample provenance survives text export", () => {
+  const f: F = { ...finding("sample", "damage"), simulated: true, provenance: "precomputed_generated_sample" };
+  const draft = replyDraft("Sample", [f]);
+  assert.match(draft, /SOURCE: includes precomputed model findings from generated sample scenes/);
+  assert.match(draft, /not an analysis of your property or files/);
+  assert.doesNotMatch(replyDraft("Other", [finding("other", "damage")]), /SOURCE: includes precomputed/);
+});
+
 check("empty and fully excluded drafts have no item responses", () => {
   for (const draft of [replyDraft("Test", []), replyDraft("Test", [finding("excluded", "damage")], { excluded: "Not claimed" })]) {
     assert.match(draft, /No items are currently included/);

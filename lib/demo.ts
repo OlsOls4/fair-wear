@@ -15,5 +15,5 @@ export const demoFindings: F[] = data.findings.map((finding) => {
   const evaluationNote = mismatch
     ? `The planted test expected ${label(mismatch.planted)} here; the model reported ${label(mismatch.got)}.`
     : falseAlarm ? "The published evaluation flags this as a false alarm on an item with no planted change." : undefined;
-  return { ...finding, evaluationNote };
+  return { ...finding, evaluationNote, provenance: "precomputed_generated_sample" };
 });

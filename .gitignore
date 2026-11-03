@@ -5,3 +5,5 @@ node_modules
 *.mp4
 data/
 tsconfig.tsbuildinfo
+__pycache__/
+*.py[cod]

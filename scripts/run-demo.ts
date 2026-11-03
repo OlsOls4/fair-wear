@@ -3,6 +3,8 @@
 // Sandbox only: needs the bound Meta key + FAIRWEAR_ALLOW_PAID=1; every call goes through the budget guard.
 //   NODE_USE_ENV_PROXY=1 MODEL_API_KEY=injected FAIRWEAR_ALLOW_PAID=1 npx tsx scripts/run-demo.ts [room]
 import fs from "node:fs";
+import path from "node:path";
+import { confidenceLabel } from "../lib/findings";
 import { execFileSync } from "node:child_process";
 import { sam31Segment } from "../lib/pipeline/models";
 import { matchItems, normLabel } from "../lib/pipeline/matching";
@@ -18,7 +20,9 @@ const CONCEPTS: Record<string, [string, string][]> = {
   bathroom: [["bathtub", "bath"], ["glass shower screen", "shower screen"], ["toilet", "toilet"], ["white sealant strip along the bath", "sealant"]],
 };
 const TENANCY_YEARS = 2;
-const dir = "public/demo/flat";
+const outputDir = process.env.FAIRWEAR_DEMO_OUTPUT_DIR ?? "public/demo";
+const dir = `${process.env.FAIRWEAR_DEMO_INPUT_DIR ?? "public/demo"}/flat`;
+const cropDir = path.join(outputDir, "flat/crops");
 const py = (...a: string[]) => execFileSync("python3", ["scripts/crop.py", ...a]).toString().trim();
 
 async function items(room: string, visit: "move_in" | "move_out"): Promise<Item[]> {
@@ -51,10 +55,10 @@ async function items(room: string, visit: "move_in" | "move_out"): Promise<Item[
       const b = (pr.before as any).px as number[], a = (pr.after as any).px as number[];
       const u = [Math.min(b[0], a[0]), Math.min(b[1], a[1]), Math.max(b[2], a[2]), Math.max(b[3], a[3])];
       for (const it of [pr.before!, pr.after!]) {
-        const crop = `${dir}/crops/${p.room}-${it.visit}-${pr.label.replace(/ /g, "_")}-${it.id.split("-").pop()}.jpg`;
-        fs.mkdirSync(`${dir}/crops`, { recursive: true });
+        const crop = `${cropDir}/${p.room}-${it.visit}-${pr.label.replace(/ /g, "_")}-${it.id.split("-").pop()}.jpg`;
+        fs.mkdirSync(cropDir, { recursive: true });
         py(it.bestFrame.url, ...u.map(String), crop, "0.03", "768");
-        (it as any).cropFile = "/" + crop.replace(/^public\//, "");
+        (it as any).cropFile = crop.startsWith("public/") ? "/" + crop.slice(7) : path.resolve(crop);
         it.bestFrame = { ...it.bestFrame, url: "data:image/jpeg;base64," + fs.readFileSync(crop).toString("base64") };
       }
     }
@@ -65,19 +69,22 @@ async function items(room: string, visit: "move_in" | "move_out"): Promise<Item[
         const g = guidanceFor(pr.label);
         return {
           id: `${p.room}-${pr.label}-${i}-${pr.before!.id.split("-").pop()}`, room: p.room, item: pr.label, verdict: f.verdict, confidence: f.confidence,
-          description: f.description, usefulLifeYears: g.usefulLifeYears, tenancyYears: TENANCY_YEARS, apportionmentPct: f.apportionmentPct,
+          description: f.description, usefulLifeYears: f.usefulLifeYears, ageYears: f.ageYears, tenancyYears: TENANCY_YEARS, apportionmentPct: f.apportionmentPct,
+          calculationBasis: f.calculationBasis, shareCalculation: f.shareCalculation,
+          exampleUsefulLifeYears: g.usefulLifeYears, lifespanBasis: g.lifespanBasis,
           guidanceNote: g.note, simulated: true, before: (pr.before as any).cropFile, after: (pr.after as any).cropFile,
         };
       }));
       all.push(...fs_);
     }
   }
-  const OUT = "public/demo/flat-results.json";
+  const OUT = path.join(outputDir, "flat-results.json");
+  fs.mkdirSync(outputDir, { recursive: true });
   if (only && fs.existsSync(OUT)) all.unshift(...JSON.parse(fs.readFileSync(OUT, "utf8")).findings.filter((f: any) => f.room !== only)); // merge: re-run one room
   fs.writeFileSync(OUT, JSON.stringify({
     property: "Demo flat (simulated)", source: "pipeline-run", note: "Real Fair Wear pipeline output (SAM 3.1 + Muse Spark) on Muse Image-generated rooms with planted changes. All imagery is simulated.",
     tenancyYears: TENANCY_YEARS, findings: all,
   }, null, 1));
-  console.log(all.map((f) => `${f.room}/${f.item}: ${f.verdict} (${Math.round(f.confidence * 100)}%) ${f.description}`).join("\n"));
+  console.log(all.map((f) => `${f.room}/${f.item}: ${f.verdict} (${confidenceLabel(f.confidence)}) ${f.description}`).join("\n"));
   console.log(budgetStatus());
 })();

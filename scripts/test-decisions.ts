@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { defaultDecision, type Decision, type DecisionFinding } from "../lib/decisions";
+import { confidenceLabel } from "../lib/findings";
 
 const cases: [string, DecisionFinding, Decision][] = [
   ["mould cleaning", { verdict: "cleaning", confidence: 0.99, description: "Black mould on sealant." }, "Dispute"],
@@ -34,3 +35,11 @@ const counts: Record<Decision, number> = { Agree: 0, Dispute: 0, "Not claimed": 
 for (const finding of demo.findings) counts[defaultDecision(finding)]++;
 assert.deepEqual(counts, { Agree: 2, Dispute: 5, "Not claimed": 13 });
 console.log("ok existing demo defaults", counts);
+
+assert.equal(confidenceLabel(0.899999), "under 90%");
+assert.equal(confidenceLabel(0.9), "90%");
+assert.equal(confidenceLabel(0.82), "82%");
+assert.equal(confidenceLabel(0.999999), "over 99.99%");
+assert.equal(confidenceLabel(0.000001), "under 0.01%");
+for (const invalid of [null, NaN, Infinity, -0.1, 90]) assert.equal(confidenceLabel(invalid), "unavailable");
+console.log("ok confidence labels preserve threshold and invalid-score semantics");

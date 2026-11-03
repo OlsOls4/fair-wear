@@ -1,8 +1,9 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { DECISIONS, defaultDecision, defaultDecisionReason, type Decision } from "@/lib/decisions";
 import { replyDraft } from "@/lib/reply";
-import type { F } from "@/lib/findings";
+import { confidenceLabel, type F } from "@/lib/findings";
+import { calculateShare } from "@/lib/pipeline/guidance";
 import EvidencePair from "./EvidencePair";
 
 export type { F } from "@/lib/findings";
@@ -11,6 +12,7 @@ const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear 
 const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "no_change"];
 
 export default function Board({ property, findings, banner, reply, pdf }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string }) {
+  const boardId = useId();
   const [filter, setFilter] = useState("all");
   const [showReply, setShowReply] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
@@ -48,7 +50,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
         </div>
         <button className="chip" disabled={!Object.keys(decisions).length} onClick={() => { setDecisions({}); setCopyStatus(""); }}>Reset suggested responses</button>
       </section>
-      <div className="row" aria-label="Filter model verdicts">
+      <div className="row" role="group" aria-label="Filter model verdicts">
         <button className={`chip ${filter === "all" ? "on" : ""}`} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All ({findings.length})</button>
         {ORDER.filter((v) => counts[v]).map((v) => <button key={v} className={`chip ${filter === v ? "on" : ""}`} aria-pressed={filter === v} onClick={() => setFilter(v)}>{LABEL[v]} ({counts[v]})</button>)}
       </div>
@@ -56,25 +58,33 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
         {shown.map((f) => {
           const suggested = defaultDecision(f);
           const selected = decisions[f.id] ?? suggested;
+          // Keep DOM IDREFs whitespace-free even when model item labels contain spaces.
+          const inputId = `${boardId}-finding-${findings.indexOf(f)}`;
+          const calculation = f.verdict === "damage" || f.verdict === "missing"
+            ? calculateShare(f.verdict, f.tenancyYears, f.ageYears, f.calculationBasis) : null;
           return (
             <article className="card" key={f.id} data-finding-id={f.id}>
               <span className={`badge v-${f.verdict}`}>Model: {LABEL[f.verdict] ?? f.verdict}</span>
-              <h3 style={{ marginTop: 8 }}>{f.item}</h3>
-              <div className="room">{f.room}{f.simulated ? " · simulated" : ""}</div>
+              <h3 id={`${inputId}-item`} style={{ marginTop: 8 }}>{f.item}</h3>
+              <div className="room" id={`${inputId}-room`}>{f.room}{f.simulated ? " · simulated" : ""}</div>
+              <div className="meta" id={`${inputId}-reference`}>Finding reference: {f.id}</div>
               {f.evaluationNote && <div className="evaluation-note"><b>Known demo limitation:</b> {f.evaluationNote}</div>}
-              <EvidencePair before={f.before} after={f.after} label={`${f.room} ${f.item}`} />
+              <EvidencePair before={f.before} after={f.after} label={`${f.room} ${f.item}`} simulated={f.simulated} />
               <div>{f.description}</div>
-              {f.apportionmentPct !== undefined && f.verdict !== "cleaning" && f.verdict !== "fair_wear" && f.verdict !== "no_change" && (<div className="meta">Illustrative useful-life share: <b>{f.apportionmentPct}%</b>{f.usefulLifeYears ? ` (${f.usefulLifeYears}-year assumed life, ${f.tenancyYears} tenancy years)` : ""}. Item age at move-in and responsibility are unverified. This is not an agreed deduction.</div>)}
+              {calculation && <div className="meta" data-testid="replacement-calculation">
+                {calculation.status === "illustrative" && <><b>Remaining-life illustration: {calculation.percentage}%.</b> Supplied assumptions: {f.ageYears} years old at move-in, {f.tenancyYears} tenancy years, {f.calculationBasis?.usefulLifeYears}-year expected life. Quality/condition basis: {f.calculationBasis?.qualityBasis}. </>}
+                {calculation.note}
+              </div>}
               {f.verdict === "cleaning" && <div className="meta">The prototype does not depreciate cleaning costs by item lifespan. Responsibility and any reasonable cleaning charge still need supporting evidence.</div>}
               {f.verdict === "fair_wear" && <div className="meta">The model suggests ordinary wear over {f.tenancyYears} years. Review the evidence before responding.</div>}
-              {f.guidanceNote && <div className="meta">General guidance: {f.guidanceNote}</div>}
-              {f.confidence != null && <div className="meta">Model confidence {Math.round(f.confidence * 100)}% (not a guarantee)</div>}
+              {f.guidanceNote && <div className="meta">Background example, not item-specific evidence: {f.guidanceNote}</div>}
+              <div className="meta">Model-reported confidence {confidenceLabel(f.confidence)}. This score is uncalibrated, not a probability of correctness or responsibility.</div>
               <div className="decision-control">
-                <label htmlFor={`decision-${f.id}`}>Your response</label>
-                <select id={`decision-${f.id}`} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
+                <label id={`${inputId}-label`} htmlFor={`${inputId}-response`}>Your response</label>
+                <select id={`${inputId}-response`} aria-labelledby={`${inputId}-label ${inputId}-room ${inputId}-item`} aria-describedby={`${inputId}-reason ${inputId}-reference`} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
                   {DECISIONS.map((decision) => <option key={decision}>{decision}</option>)}
                 </select>
-                <div className="meta">{selected !== suggested ? `You changed the suggested response (${suggested}). ` : ""}{defaultDecisionReason(f)}</div>
+                <div className="meta" id={`${inputId}-reason`}>{selected !== suggested ? `You changed the suggested response (${suggested}). ` : ""}{defaultDecisionReason(f)}</div>
               </div>
             </article>
           );

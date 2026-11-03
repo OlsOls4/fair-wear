@@ -1,53 +1,78 @@
-// UK deposit adjudication guidance, encoded as data + deterministic maths.
-// Useful-life figures are the indicative ones adjudicators commonly apply when apportioning the cost of
-// replacing an item (betterment). They are NOT legal advice; check the current TDS / DPS / mydeposits guidance.
-// The LLM never does the arithmetic: Muse Spark classifies the change, this module apportions it.
-import type { Verdict } from "./types";
+// Background examples and deterministic illustration only, not a liability assessment.
+// These example lifespans are not scheme-prescribed values or evidence of an item's quality.
+import type { Verdict, CalculationBasis, ShareCalculation } from "./types";
 
 export interface Guide { usefulLifeYears: number; note: string }
 const TABLE: Record<string, Guide> = {
-  carpet: { usefulLifeYears: 7, note: "Carpet is expected to flatten and fade in high-traffic areas." },
-  floor: { usefulLifeYears: 10, note: "Hard flooring: light scuffing is wear; deep gouges are damage." },
-  wall: { usefulLifeYears: 4, note: "Paint lasts about 4 years; small nail holes and light marks are wear." },
-  "skirting board": { usefulLifeYears: 10, note: "Light scuffs are wear; broken or gouged sections are damage." },
-  door: { usefulLifeYears: 15, note: "Minor handle wear is expected; holes and splits are damage." },
-  window: { usefulLifeYears: 20, note: "Condensation marks are not tenant damage; cracks usually are." },
-  curtains: { usefulLifeYears: 5, note: "Fading is wear; stains and tears are damage or cleaning." },
-  worktop: { usefulLifeYears: 15, note: "Light knife marks are wear; burns and deep cuts are damage." },
-  hob: { usefulLifeYears: 10, note: "Grease is a cleaning matter; cracked glass is damage." },
-  oven: { usefulLifeYears: 10, note: "Grease is a cleaning matter." },
-  fridge: { usefulLifeYears: 8, note: "Defrost and clean at end of tenancy." },
-  sink: { usefulLifeYears: 15, note: "Limescale is cleaning; chips are damage." },
-  bath: { usefulLifeYears: 20, note: "Surface wear is expected; chips are damage." },
-  "shower screen": { usefulLifeYears: 10, note: "Limescale is cleaning; cracks are damage." },
-  toilet: { usefulLifeYears: 15, note: "Cleaning matter unless cracked." },
-  mattress: { usefulLifeYears: 7, note: "Light sagging is wear; stains and burns are damage." },
-  sofa: { usefulLifeYears: 8, note: "Seat compression is wear; rips and stains are damage." },
-  table: { usefulLifeYears: 10, note: "Light surface marks are wear." },
-  wardrobe: { usefulLifeYears: 15, note: "Light scuffs are wear; broken doors are damage." },
+  carpet: { usefulLifeYears: 7, note: "Flattening and fading can reflect ordinary use; assess stains and tears in context." },
+  floor: { usefulLifeYears: 10, note: "Compare light scuffs and deep gouges with the starting condition and evidence of cause." },
+  wall: { usefulLifeYears: 4, note: "Paint marks can reflect ordinary use; compare the starting condition and context." },
+  "skirting board": { usefulLifeYears: 10, note: "Scuffs, broken sections and gouges need comparison with the starting condition." },
+  door: { usefulLifeYears: 15, note: "Compare handle wear, holes and splits with the starting condition and evidence of cause." },
+  window: { usefulLifeYears: 20, note: "Condensation marks and cracks need context about cause and starting condition." },
+  curtains: { usefulLifeYears: 5, note: "Fading can reflect use; stains and tears need evidence of cause and whether cleaning would help." },
+  worktop: { usefulLifeYears: 15, note: "Surface marks, burns and cuts need comparison with the starting condition and cause." },
+  hob: { usefulLifeYears: 10, note: "Grease may be removable; cracked glass needs evidence of cause and starting condition." },
+  oven: { usefulLifeYears: 10, note: "Visible grease may call for cleaning; compare the starting condition." },
+  fridge: { usefulLifeYears: 8, note: "Compare cleanliness and condition with the move-in record." },
+  sink: { usefulLifeYears: 15, note: "Limescale may be removable; chips need comparison with the starting condition." },
+  bath: { usefulLifeYears: 20, note: "Surface wear and chips need comparison with the starting condition and cause." },
+  "shower screen": { usefulLifeYears: 10, note: "Limescale may be removable; cracks need evidence of cause and starting condition." },
+  toilet: { usefulLifeYears: 15, note: "Compare cleanliness and cracks with the starting condition; do not infer cause from images alone." },
+  mattress: { usefulLifeYears: 7, note: "Sagging can reflect use; stains and burns need comparison with the starting condition." },
+  sofa: { usefulLifeYears: 8, note: "Compression can reflect use; rips and stains need comparison with the starting condition." },
+  table: { usefulLifeYears: 10, note: "Light surface marks can reflect use; compare the starting condition." },
+  wardrobe: { usefulLifeYears: 15, note: "Compare scuffs and broken parts with the starting condition and evidence of cause." },
 };
 export const SCHEME_REFS = ["TDS: Fair wear and tear guide", "DPS: Deposit deductions guidance", "mydeposits: Betterment and apportionment"];
 
 export function guidanceFor(label: string) {
-  const g = TABLE[label.toLowerCase()];
-  return { usefulLifeYears: g?.usefulLifeYears, note: g?.note ?? "", refs: SCHEME_REFS };
+  const key = label.trim().toLowerCase();
+  const g = Object.hasOwn(TABLE, key) ? TABLE[key] : undefined;
+  return {
+    // Retained for existing sample-generation callers. Never use as an item-specific input.
+    usefulLifeYears: g?.usefulLifeYears,
+    lifespanBasis: "background_example" as const,
+    note: `${g?.note ?? "Assess the observed change in context."} Background example only: actual lifespan depends on quality, condition and use. Images alone do not establish age, cause or responsibility.`,
+    refs: SCHEME_REFS,
+  };
 }
 export const KNOWN_LABELS = Object.keys(TABLE);
 
-/**
- * Share of the cost a tenant could fairly bear, 0-100.
- * - fair_wear / no_change: 0 (the landlord can't deduct for ordinary wear).
- * - cleaning: 100 (a cleaning cost isn't depreciated).
- * - damage / missing: the item's remaining useful life. A 4-year wall painted at move-in, damaged after 2 years -> 50%.
- *   `ageAtMoveInYears` is how old the item already was at move-in (0 = new), so older items give the tenant less to pay.
- * - added: 0 (nothing to apportion).
- * Returns undefined when the item's useful life is unknown, so the pack says "needs a quote" rather than guessing.
+
+const nonNegative = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+/** Remaining-life illustration, never an agreed deduction or an assessment of liability.
+ * Explicit inputs must describe this item, not be silently inferred from its label.
+ * Quality basis records the supplied quality/condition assumption; it does not verify it.
  */
-export function apportion(verdict: Verdict, label: string, tenancyYears: number, ageAtMoveInYears = 0): number | undefined {
+export function calculateShare(verdict: Verdict, tenancyYears: number, ageAtMoveInYears?: number, basis?: CalculationBasis): ShareCalculation {
+  if (verdict !== "damage" && verdict !== "missing") {
+    return { status: "not_applicable", missingInputs: [], note: "No replacement-life calculation applies. Classification alone does not establish a charge." };
+  }
+  const missingInputs: ShareCalculation["missingInputs"] = [];
+  if (!nonNegative(ageAtMoveInYears)) missingInputs.push("age_at_move_in");
+  if (!nonNegative(tenancyYears)) missingInputs.push("tenancy_length");
+  if (!nonNegative(basis?.usefulLifeYears) || basis!.usefulLifeYears <= 0) missingInputs.push("useful_life");
+  if (typeof basis?.qualityBasis !== "string" || !basis.qualityBasis.trim()) missingInputs.push("quality_basis");
+  if (missingInputs.length) return {
+    status: "needs_inputs", missingInputs,
+    note: "No percentage estimated. Supply item age at move-in, tenancy length, expected useful life and the quality/condition basis. Costs, cause and responsibility still need separate evidence.",
+  };
+  // Inputs have been validated above. Addition overflow is harmless: it means no remaining life.
+  const age = ageAtMoveInYears! + tenancyYears;
+  const percentage = Math.round(Math.max(0, Math.min(1, 1 - age / basis!.usefulLifeYears)) * 100);
+  return {
+    status: "illustrative", percentage, missingInputs: [],
+    note: "Remaining-life illustration using supplied age, lifespan and quality/condition assumptions, not verified facts or tenant liability. Repair options, costs, cause and responsibility need separate evidence.",
+  };
+}
+
+/** Legacy numeric wrapper. Label never supplies age, quality or lifespan.
+ * Cleaning has no replacement-life percentage. Zero for unchanged/wear/added is
+ * retained for callers, but is not a legal determination about any proposed claim.
+ */
+export function apportion(verdict: Verdict, _label: string, tenancyYears: number, ageAtMoveInYears?: number, basis?: CalculationBasis): number | undefined {
   if (verdict === "no_change" || verdict === "fair_wear" || verdict === "added") return 0;
-  if (verdict === "cleaning") return 100;
-  const life = guidanceFor(label).usefulLifeYears;
-  if (!life) return undefined;
-  const age = Math.max(0, ageAtMoveInYears) + Math.max(0, tenancyYears);
-  return Math.round(Math.max(0, Math.min(1, 1 - age / life)) * 100);
+  return calculateShare(verdict, tenancyYears, ageAtMoveInYears, basis).percentage;
 }

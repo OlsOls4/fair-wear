@@ -23,8 +23,12 @@ The review UI extends the public 30 Oct version (`fb0dd3a`) and preserves its or
 
 - Each finding has a suggested **Agree**, **Dispute**, or **Not claimed** response that the reviewer can change. Mould cleaning, fair wear, and damage below 90% confidence default to Dispute. Ordinary cleaning and damage at or above 90% default to Agree. No change defaults to Not claimed. Invalid damage confidence and unspecified verdicts conservatively default to Dispute.
 - The current draft is generated locally from all selected responses, including filtered-out cards. Not claimed items are omitted. The text requests evidence and costs, and does not accept model percentages as an agreed amount. Nothing is sent. Selections reset on reload.
+- Replacement-life calculations require explicit item age at move-in, tenancy length, expected useful life and a quality/condition basis. Missing inputs stay unknown; the item label never silently supplies them. Complete inputs produce an illustration, not liability or an agreed cost. Unsupported legacy percentages are withheld in the current UI. Cleaning has no replacement-life percentage.
 - Original 30 Oct Muse Spark reply/PDF artifacts are retained unchanged and visibly separated from the current draft. They do not reflect review selections.
-- Published simulated-evaluation errors are shown on relevant cards and in the summary. Evidence crops can be enlarged. The guided sample requires no personal files.
+- Published simulated-evaluation errors are shown on relevant cards and in the summary. Evidence crops can be enlarged without trimming, with sample provenance visible in the viewer and exported draft. The guided sample requires no personal files.
+- Controls have item-specific labels, linked explanations, larger touch targets and higher-contrast badges. Real-browser verification is still required to establish rendered layout and native behavior.
+
+See [review method and assumptions](docs/review-method.md) for the separation between model classification, response choices and cost illustrations.
 
 Offline checks (no model calls):
 
@@ -36,7 +40,9 @@ npm run typecheck
 MOCK=1 FAIRWEAR_ALLOW_PAID=0 NEXT_TELEMETRY_DISABLED=1 npm run build
 ```
 
-`npm test` runs decision, draft, judge/schema, and budget-refusal regressions. `npm run test:ui:dom` checks review interactions using jsdom with mocked native clipboard, download and dialog APIs; it is not a visual or real-browser check. SceneDiff harness sanity check: `MOCK=1 FAIRWEAR_ALLOW_PAID=0 node --import tsx scripts/eval-scenediff.ts --predictor oracle --out /tmp/fair-wear-oracle.json`.
+`npm test` runs decision, draft, judge/schema, assumption-propagation and budget-refusal regressions. `npm run test:ui:dom` checks review interactions using jsdom with mocked native clipboard, download and dialog APIs; it is not a visual or real-browser check. SceneDiff harness sanity check: `MOCK=1 FAIRWEAR_ALLOW_PAID=0 node --import tsx scripts/eval-scenediff.ts --predictor oracle --out /tmp/fair-wear-oracle.json`.
+
+`python scripts/test-pack-format.py` checks the PDF formatter's missing-input and confidence-boundary behavior using the Python standard library only. To validate a rebuilt PDF without replacing original artifacts, set `FAIRWEAR_DEMO_INPUT_DIR=public/demo` and `FAIRWEAR_DEMO_OUTPUT_DIR=/tmp/fair-wear-pack-check` before running `python scripts/build-pack.py` (requires Pillow and ReportLab). Keep validation output outside `public/demo`; intentionally replacing original artifacts also requires updating their provenance labels and checking all references.
 
 Optional real-browser regression suite: with Python Playwright and its Chromium browser installed, start the production server on port 3200 (`npm run start -- --port 3200`) and run `python scripts/test-ui.py`. Set `FAIRWEAR_TEST_BROWSER_PATH` to use an existing Chromium binary. The suite covers defaults, overrides, filtering, draft exports, evidence dialogs, navigation and mobile overflow. It writes screenshots to `/tmp/fair-wear-ui` by default. Browser execution needs an environment that permits Chromium's local sockets; a successful build or DOM test is not a substitute for browser verification.
 
