@@ -21,3 +21,17 @@ pre.reply { white-space:pre-wrap; background:#fff; border:1px solid var(--line);
 .pair { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0; }
 .pair img { width:100%; border-radius:8px; border:1px solid var(--line); display:block; }
 .pair figcaption { font-size:11px; color:var(--mute); }
+.review-intro { margin: 16px 0; }
+.review-intro p { line-height: 1.5; }
+.review-intro .row span { margin-right: 12px; }
+.decision-control { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.decision-control label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.decision-control select { width: 100%; min-height: 44px; border: 1px solid #8a94a6; border-radius: 8px; padding: 8px; color: var(--ink); background: #fff; font: inherit; }
+button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--info); outline-offset: 3px; }
+button:disabled { opacity: .5; cursor: default; }
+.archived-artifacts { border: 2px dashed #b7791f; border-radius: 12px; margin-top: 28px; padding: 18px; background: #fff9ec; line-height: 1.5; }
+.archived-artifacts h3 { margin-top: 0; }
+.archived-artifacts details { margin-top: 18px; }
+.archived-artifacts summary { cursor: pointer; }
+.archived-artifacts a { display: inline-block; }
+.evaluation-note { margin: 10px 0; padding: 10px; background: #fff4d6; border-left: 3px solid #b7791f; font-size: 13px; line-height: 1.5; }

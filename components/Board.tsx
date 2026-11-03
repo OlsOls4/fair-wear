@@ -1,55 +1,102 @@
 "use client";
 import { useMemo, useState } from "react";
+import { DECISIONS, defaultDecision, defaultDecisionReason, type Decision } from "@/lib/decisions";
+import { replyDraft } from "@/lib/reply";
+import type { F } from "@/lib/findings";
+import EvidencePair from "./EvidencePair";
 
-export interface F { id: string; room: string; item: string; verdict: string; confidence: number | null; description: string; usefulLifeYears?: number; tenancyYears: number; apportionmentPct?: number; guidanceNote?: string; simulated?: boolean; before?: string; after?: string }
+export type { F } from "@/lib/findings";
+export { replyDraft } from "@/lib/reply";
 const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear & tear", cleaning: "Cleaning", no_change: "No change", missing: "Missing", added: "Added" };
 const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "no_change"];
-
-export function replyDraft(property: string, fs: F[]) {
-  const lines = fs.filter((f) => f.verdict !== "no_change").map((f, i) => {
-    const what = `${f.room} ${f.item}`;
-    if (f.verdict === "fair_wear") return `${i + 1}. ${what}: I dispute any deduction. ${f.description}. This is fair wear and tear over a ${f.tenancyYears}-year tenancy (TDS fair wear and tear guide).`;
-    if (f.verdict === "cleaning") return `${i + 1}. ${what}: I accept a reasonable cleaning charge. ${f.description}. Please send the invoice.`;
-    if (f.verdict === "missing") return `${i + 1}. ${what}: ${f.description}. Please show where this was listed in the inventory.`;
-    const share = f.apportionmentPct;
-    return `${i + 1}. ${what}: ${f.description}. I accept responsibility only for the remaining useful life${f.usefulLifeYears ? ` (about ${f.usefulLifeYears} years; ${f.tenancyYears} already elapsed)` : ""}${share !== undefined ? `, which is ${share}% of a like-for-like repair` : ""}. Please send the invoice.`;
-  });
-  return `Re: deposit deductions, ${property}\n\nThank you for the deduction list. I have compared my dated move-in and move-out walkthrough videos item by item. My response:\n\n${lines.join("\n")}\n\nPlease provide invoices for all claimed costs. I am happy to use the deposit scheme's free dispute resolution if we cannot agree.`;
-}
 
 export default function Board({ property, findings, banner, reply, pdf }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string }) {
   const [filter, setFilter] = useState("all");
   const [showReply, setShowReply] = useState(false);
+  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+  const [copyStatus, setCopyStatus] = useState("");
   const counts = useMemo(() => { const c: Record<string, number> = {}; findings.forEach((f) => (c[f.verdict] = (c[f.verdict] ?? 0) + 1)); return c; }, [findings]);
+  const decisionCounts: Record<Decision, number> = { Agree: 0, Dispute: 0, "Not claimed": 0 };
+  findings.forEach((f) => decisionCounts[decisions[f.id] ?? defaultDecision(f)]++);
   const shown = findings.filter((f) => filter === "all" || f.verdict === filter).sort((a, b) => ORDER.indexOf(a.verdict) - ORDER.indexOf(b.verdict));
+  const draft = useMemo(() => replyDraft(property, findings, decisions), [property, findings, decisions]);
+  function choose(id: string, decision: Decision) {
+    setDecisions((current) => ({ ...current, [id]: decision }));
+    setCopyStatus("");
+  }
+  async function copyDraft() {
+    try { await navigator.clipboard.writeText(draft); setCopyStatus("Draft copied. Review and edit it before sharing."); }
+    catch { setCopyStatus("Copy was unavailable. Select the draft text below and copy it manually."); }
+  }
+  function downloadDraft() {
+    const url = URL.createObjectURL(new Blob([draft], { type: "text/plain;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = "fair-wear-review-draft.txt";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   return (
     <div>
       {banner && <div className="banner">{banner}</div>}
       <h2 style={{ margin: "8px 0" }}>{property}</h2>
-      <div className="row">
-        <button className={`chip ${filter === "all" ? "on" : ""}`} onClick={() => setFilter("all")}>All ({findings.length})</button>
-        {ORDER.filter((v) => counts[v]).map((v) => <button key={v} className={`chip ${filter === v ? "on" : ""}`} onClick={() => setFilter(v)}>{LABEL[v]} ({counts[v]})</button>)}
+      <section className="card review-intro" aria-label="Review your suggested responses">
+        <b>Review your suggested responses</b>
+        <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Agree means provisional agreement, subject to evidence and cost review. Not claimed leaves the item out of your draft.</p>
+        <p className="meta">Nothing is sent. Your selections stay on this page and reset on reload. The draft updates from all your choices, including items hidden by a filter.</p>
+        <div className="row" aria-live="polite" data-testid="decision-summary">
+          {DECISIONS.map((decision) => <span key={decision}>{decision}: <b>{decisionCounts[decision]}</b></span>)}
+        </div>
+        <button className="chip" disabled={!Object.keys(decisions).length} onClick={() => { setDecisions({}); setCopyStatus(""); }}>Reset suggested responses</button>
+      </section>
+      <div className="row" aria-label="Filter model verdicts">
+        <button className={`chip ${filter === "all" ? "on" : ""}`} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All ({findings.length})</button>
+        {ORDER.filter((v) => counts[v]).map((v) => <button key={v} className={`chip ${filter === v ? "on" : ""}`} aria-pressed={filter === v} onClick={() => setFilter(v)}>{LABEL[v]} ({counts[v]})</button>)}
       </div>
       <div className="grid">
-        {shown.map((f) => (
-          <div className="card" key={f.id}>
-            <span className={`badge v-${f.verdict}`}>{LABEL[f.verdict] ?? f.verdict}</span>
-            <h3 style={{ marginTop: 8 }}>{f.item}</h3>
-            <div className="room">{f.room}{f.simulated ? " · simulated" : ""}</div>
-            {(f.before || f.after) && <div className="pair">{f.before && <figure style={{ margin: 0 }}><img src={f.before} alt="before" /><figcaption>Move-in</figcaption></figure>}{f.after && <figure style={{ margin: 0 }}><img src={f.after} alt="after" /><figcaption>Move-out</figcaption></figure>}</div>}
-            <div>{f.description}</div>
-            {f.apportionmentPct !== undefined && f.verdict !== "fair_wear" && f.verdict !== "no_change" && (<div className="meta">Tenant share if charged: <b>{f.apportionmentPct}%</b>{f.usefulLifeYears ? ` (${f.usefulLifeYears}-year life, ${f.tenancyYears} yrs elapsed)` : ""}<div className="bar"><i style={{ width: `${f.apportionmentPct}%` }} /></div></div>)}
-            {f.verdict === "fair_wear" && <div className="meta">Not chargeable: ordinary wear over {f.tenancyYears} years.</div>}
-            {f.guidanceNote && <div className="meta">{f.guidanceNote}</div>}
-            {f.confidence != null && <div className="meta">Model confidence {Math.round(f.confidence * 100)}%</div>}
-          </div>
-        ))}
+        {shown.map((f) => {
+          const suggested = defaultDecision(f);
+          const selected = decisions[f.id] ?? suggested;
+          return (
+            <article className="card" key={f.id} data-finding-id={f.id}>
+              <span className={`badge v-${f.verdict}`}>Model: {LABEL[f.verdict] ?? f.verdict}</span>
+              <h3 style={{ marginTop: 8 }}>{f.item}</h3>
+              <div className="room">{f.room}{f.simulated ? " · simulated" : ""}</div>
+              {f.evaluationNote && <div className="evaluation-note"><b>Known demo limitation:</b> {f.evaluationNote}</div>}
+              <EvidencePair before={f.before} after={f.after} label={`${f.room} ${f.item}`} />
+              <div>{f.description}</div>
+              {f.apportionmentPct !== undefined && f.verdict !== "cleaning" && f.verdict !== "fair_wear" && f.verdict !== "no_change" && (<div className="meta">Illustrative useful-life share: <b>{f.apportionmentPct}%</b>{f.usefulLifeYears ? ` (${f.usefulLifeYears}-year assumed life, ${f.tenancyYears} tenancy years)` : ""}. Item age at move-in and responsibility are unverified. This is not an agreed deduction.</div>)}
+              {f.verdict === "cleaning" && <div className="meta">The prototype does not depreciate cleaning costs by item lifespan. Responsibility and any reasonable cleaning charge still need supporting evidence.</div>}
+              {f.verdict === "fair_wear" && <div className="meta">The model suggests ordinary wear over {f.tenancyYears} years. Review the evidence before responding.</div>}
+              {f.guidanceNote && <div className="meta">General guidance: {f.guidanceNote}</div>}
+              {f.confidence != null && <div className="meta">Model confidence {Math.round(f.confidence * 100)}% (not a guarantee)</div>}
+              <div className="decision-control">
+                <label htmlFor={`decision-${f.id}`}>Your response</label>
+                <select id={`decision-${f.id}`} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
+                  {DECISIONS.map((decision) => <option key={decision}>{decision}</option>)}
+                </select>
+                <div className="meta">{selected !== suggested ? `You changed the suggested response (${suggested}). ` : ""}{defaultDecisionReason(f)}</div>
+              </div>
+            </article>
+          );
+        })}
       </div>
-      <div className="row" style={{ marginTop: 24 }}>
-        <button className="btn" onClick={() => setShowReply((s) => !s)}>{showReply ? "Hide" : "Show"} reply to landlord{reply ? " (written by Muse Spark)" : ""}</button>
-        {pdf ? <a className="btn" href={pdf} download>Download evidence pack (PDF)</a> : <button className="btn" onClick={() => window.print()}>Print / save evidence pack</button>}
-      </div>
-      {showReply && <pre className="reply">{reply ?? replyDraft(property, findings)}</pre>}
+      <section className="current-draft" aria-label="Current response draft">
+        <div className="row" style={{ marginTop: 24 }}>
+          <button className="btn" aria-expanded={showReply} aria-controls="current-reply" onClick={() => setShowReply((s) => !s)}>{showReply ? "Hide" : "Show"} current draft</button>
+        </div>
+        <p className="meta">Generated locally from your selected responses. Review every line before sharing. No deduction amount is accepted and no message is sent.</p>
+        {showReply && <div id="current-reply">
+          <div className="row"><button className="chip" onClick={copyDraft}>Copy current draft</button><button className="chip" onClick={downloadDraft}>Download current draft (.txt)</button></div>
+          <div role="status">{copyStatus}</div>
+          <pre className="reply" data-testid="current-draft">{draft}</pre>
+        </div>}
+      </section>
+      {(reply || pdf) && <section className="archived-artifacts" aria-label="Original precomputed demo artifacts">
+        <h3>Original precomputed demo artifacts (30 Oct)</h3>
+        <p>These unchanged artifacts do not include your selected responses. They contain the original model's wording and may accept charges you dispute. Use the current draft above for your review.</p>
+        {pdf && <a className="chip" href={pdf} download>Download original precomputed PDF (unchanged)</a>}
+        {reply && <details><summary>View original Muse Spark reply (unchanged)</summary><pre className="reply">{reply}</pre></details>}
+      </section>}
     </div>
   );
 }

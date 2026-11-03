@@ -1,6 +1,6 @@
 # Fair Wear
 
-Deposit-dispute evidence for UK renters from two phone walkthroughs. SAM 3.1 tracks every item, Muse Spark separates fair wear and tear from damage, Muse Image renders comparison cards, and you get an evidence pack plus a draft reply to your landlord.
+Prototype deposit-dispute evidence review for UK renters. The offline pipeline uses SAM 3.1 to segment items, Muse Spark to suggest classifications, and Muse Image to generate simulated demo scenes. The public site explores a precomputed sample; it does not analyse uploaded videos or determine liability.
 
 Built for the Meta Global AI Developer Hackathon (Indie track). Status: scaffold; runs in MOCK mode without `META_API_KEY`.
 
@@ -16,6 +16,29 @@ Built for the Meta Global AI Developer Hackathon (Indie track). Status: scaffold
 Every paid Meta Model API call reserves its worst-case cost in a local ledger before it is sent (`lib/pipeline/budget.ts`) and is refused past a hard lifetime cap. Paid calls need a key plus `FAIRWEAR_ALLOW_PAID=1` and never run on Vercel; the public site serves pre-computed results or MOCK output. `npx tsx scripts/test-budget.ts` checks the refusal.
 
 `npm install && npm run dev`
+
+## Review UI and local checks
+
+The review UI extends the public 30 Oct version (`fb0dd3a`) and preserves its original model output.
+
+- Each finding has a suggested **Agree**, **Dispute**, or **Not claimed** response that the reviewer can change. Mould cleaning, fair wear, and damage below 90% confidence default to Dispute. Ordinary cleaning and damage at or above 90% default to Agree. No change defaults to Not claimed. Invalid damage confidence and unspecified verdicts conservatively default to Dispute.
+- The current draft is generated locally from all selected responses, including filtered-out cards. Not claimed items are omitted. The text requests evidence and costs, and does not accept model percentages as an agreed amount. Nothing is sent. Selections reset on reload.
+- Original 30 Oct Muse Spark reply/PDF artifacts are retained unchanged and visibly separated from the current draft. They do not reflect review selections.
+- Published simulated-evaluation errors are shown on relevant cards and in the summary. Evidence crops can be enlarged. The guided sample requires no personal files.
+
+Offline checks (no model calls):
+
+```sh
+npm ci
+npm test
+npm run test:ui:dom
+npm run typecheck
+MOCK=1 FAIRWEAR_ALLOW_PAID=0 NEXT_TELEMETRY_DISABLED=1 npm run build
+```
+
+`npm test` runs decision, draft, judge/schema, and budget-refusal regressions. `npm run test:ui:dom` checks review interactions using jsdom with mocked native clipboard, download and dialog APIs; it is not a visual or real-browser check. SceneDiff harness sanity check: `MOCK=1 FAIRWEAR_ALLOW_PAID=0 node --import tsx scripts/eval-scenediff.ts --predictor oracle --out /tmp/fair-wear-oracle.json`.
+
+Optional real-browser regression suite: with Python Playwright and its Chromium browser installed, start the production server on port 3200 (`npm run start -- --port 3200`) and run `python scripts/test-ui.py`. Set `FAIRWEAR_TEST_BROWSER_PATH` to use an existing Chromium binary. The suite covers defaults, overrides, filtering, draft exports, evidence dialogs, navigation and mobile overflow. It writes screenshots to `/tmp/fair-wear-ui` by default. Browser execution needs an environment that permits Chromium's local sockets; a successful build or DOM test is not a substitute for browser verification.
 
 MIT licence.
 
