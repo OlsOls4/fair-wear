@@ -6,6 +6,7 @@ import { JSDOM } from "jsdom";
 import { createRoot } from "react-dom/client";
 import Board from "../components/Board";
 import Sample from "../app/upload/page";
+import Home from "../app/page";
 import { demoData, demoFindings } from "../lib/demo";
 
 async function main() {
@@ -39,6 +40,14 @@ async function main() {
   function summary() { return host.querySelector('[data-testid="decision-summary"]')!.textContent!; }
   const cleaning = demoFindings.find((f) => f.verdict === "cleaning" && !/mou?ld/i.test(f.description))!;
   const noChange = demoFindings.find((f) => f.verdict === "no_change")!;
+  await act(async () => root.render(<Home />));
+  ok("homepage separates generated inputs from real offline model results", () => {
+    assert.equal(demoData.source, "pipeline-run");
+    assert.match(host.textContent!, /Generated test images · Real model results/);
+    assert.match(host.textContent!, /Muse Image created the test scenes; SAM 3\.1 and Muse Spark analysed them beforehand/);
+    assert.match(host.textContent!, /No live model calls/);
+    assert.doesNotMatch(host.textContent!, /Simulated, precomputed prototype/);
+  });
   await act(async () => root.render(<Board property={demoData.property} findings={demoFindings} reply="ARCHIVE SENTINEL" pdf="/original.pdf" />));
   ok("exact default counts", () => assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13"));
   ok("responses have item-specific labels and linked explanations", () => {
@@ -105,7 +114,7 @@ async function main() {
   ok("evidence opens the selected image using mocked dialog API", () => {
     assert.equal(dialog.open, true);
     assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg");
-    assert.match(dialog.textContent!, /Simulated, precomputed evidence/);
+    assert.match(dialog.textContent!, /Simulated input imagery/);
     const original = dialog.querySelector("a")!;
     assert.equal(original.getAttribute("target"), "_blank");
     assert.equal(original.getAttribute("rel"), "noopener noreferrer");
@@ -120,6 +129,14 @@ async function main() {
   ok("evidence closes and reopens using mocked dialog API", () => { assert.equal(dialog.open, true); assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg"); });
   await act(async () => evidenceButton("Close").click());
   await act(async () => root.render(<Sample />));
+  ok("sample and evaluation describe real results on generated imagery", () => {
+    assert.match(host.querySelector(".banner")!.textContent!, /Generated test images · Real model results/);
+    assert.match(host.querySelector(".banner")!.textContent!, /No live model calls/);
+    const evaluation = host.querySelector('[aria-label="Published evaluation on generated imagery"]')!;
+    assert.match(evaluation.textContent!, /Real pipeline evaluation: 4 generated rooms, 8 planted changes/);
+    assert.match(evaluation.textContent!, /not accuracy estimates for real homes/);
+    assert.match(host.querySelector("article .room")!.textContent!, /simulated imagery/);
+  });
   ok("sample starts hidden and does not request personal files", () => { assert.equal((host.querySelector("#sample-results") as HTMLElement).hidden, true); assert.equal(host.querySelector('input[type="file"]'), null); });
   await click("Show sample findings");
   await choose(cleaning.id, "Dispute");

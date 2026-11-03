@@ -66,7 +66,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
             <article className="card" key={f.id} data-finding-id={f.id}>
               <span className={`badge v-${f.verdict}`}>Model: {LABEL[f.verdict] ?? f.verdict}</span>
               <h3 id={`${inputId}-item`} style={{ marginTop: 8 }}>{f.item}</h3>
-              <div className="room" id={`${inputId}-room`}>{f.room}{f.simulated ? " · simulated" : ""}</div>
+              <div className="room" id={`${inputId}-room`}>{f.room}{f.simulated ? " · simulated imagery" : ""}</div>
               <div className="meta" id={`${inputId}-reference`}>Finding reference: {f.id}</div>
               {f.evaluationNote && <div className="evaluation-note"><b>Known demo limitation:</b> {f.evaluationNote}</div>}
               <EvidencePair before={f.before} after={f.after} label={`${f.room} ${f.item}`} simulated={f.simulated} />

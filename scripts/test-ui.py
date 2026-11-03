@@ -43,7 +43,7 @@ with sync_playwright() as p:
     expect(response("kitchen-oven-0-0")).to_have_value("Agree")
     passed("mould, uncertain damage, high-confidence damage and ordinary cleaning defaults")
     expect(page.locator('[data-finding-id="bedroom-carpet-0-0"]')).to_contain_text("planted test expected fair wear")
-    expect(page.get_by_role("region", name="Published simulated evaluation")).to_contain_text("no finding card was produced")
+    expect(page.get_by_role("region", name="Published evaluation on generated imagery")).to_contain_text("no finding card was produced")
     passed("known false positive and unsegmented miss disclosed")
 
     page.get_by_role("button", name="Show current draft", exact=True).click()
@@ -126,7 +126,7 @@ with sync_playwright() as p:
     expect(response("kitchen-oven-0-0")).to_have_value("Agree")
     passed("reload resets decisions as disclosed")
     page.goto(base)
-    expect(page.get_by_text("Simulated, precomputed prototype.", exact=False)).to_be_visible()
+    expect(page.get_by_text("Generated test images · Real model results.", exact=False)).to_be_visible()
     page.get_by_role("link", name="Explore sample comparison", exact=True).click()
     expect(page.locator('input[type="file"]')).to_have_count(0)
     page.get_by_role("button", name="Show sample findings", exact=True).click()

@@ -3,7 +3,7 @@ export default function Home() {
     <main className="wrap">
       <h1 style={{ fontSize: 48, marginBottom: 8 }}>Fair Wear</h1>
       <p style={{ fontSize: 20, lineHeight: 1.5 }}>Compare move-in and move-out evidence, review possible changes, and prepare a draft response about rental deposit deductions.</p>
-      <div className="banner">Simulated, precomputed prototype. Explore generated sample rooms and findings from a pipeline run offline. This site does not analyse your videos.</div>
+      <div className="banner">Generated test images · Real model results. Muse Image created the test scenes; SAM 3.1 and Muse Spark analysed them beforehand in an offline run. No live model calls or analysis of your videos happen here.</div>
       <p><a className="btn" href="/upload">Explore sample comparison</a>{" "}<a href="/demo" style={{ marginLeft: 12 }}>Go straight to sample findings</a></p>
       <h2>What the prototype explores</h2>
       <ol style={{ lineHeight: 1.8 }}>

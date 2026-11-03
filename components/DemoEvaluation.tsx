@@ -1,8 +1,8 @@
 import { demoEvaluation as ev } from "@/lib/demo";
 
 export default function DemoEvaluation() {
-  return <section className="card" style={{ margin: "12px 0" }} aria-label="Published simulated evaluation">
-    <b>Planted-change test: simulated flat, 4 rooms, 8 planted changes</b>
+  return <section className="card" style={{ margin: "12px 0" }} aria-label="Published evaluation on generated imagery">
+    <b>Real pipeline evaluation: 4 generated rooms, 8 planted changes</b>
     <div className="meta">Detected {ev.detected}/{ev.planted} · exact verdict {ev.exactVerdict}/{ev.planted} · damage found {ev.damageFound}/{ev.damagePlanted} · fair-wear decoys called damage {ev.decoysWronglyDamage}/{ev.decoys} · false alarms on unplanted items {ev.falseAlarms}/{ev.unplantedItemsChecked}.</div>
     <p className="meta">These are results on generated scenes, not accuracy estimates for real homes or determinations of tenant responsibility. The known errors below are also flagged on matching finding cards.</p>
     <ul className="meta">

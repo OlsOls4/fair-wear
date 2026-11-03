@@ -19,7 +19,7 @@ export default function Upload() {
     <main className="wrap">
       <a href="/">← Fair Wear</a>
       <h1 style={{ fontSize: 34 }}>Explore a sample comparison</h1>
-      <div className="banner">Simulated, precomputed prototype. The sample uses generated scenes and output from a pipeline run offline. No personal videos are requested or analysed here.</div>
+      <div className="banner">Generated test images · Real model results. Muse Image created the test scenes; SAM 3.1 and Muse Spark analysed them beforehand in an offline run. No live model calls happen here. No personal videos are requested or analysed.</div>
       <section aria-labelledby="sample-workflow-title" style={{ margin: "24px 0" }}>
         <h2 id="sample-workflow-title">How a comparison is structured</h2>
         <p>These stages explain the workflow. They are illustrative, not a live analysis or progress indicator.</p>
@@ -45,7 +45,7 @@ export default function Upload() {
               property={demoData.property}
               findings={demoFindings}
               pdf="/demo/fair-wear-evidence-pack.pdf"
-              banner="Precomputed pipeline output on generated, simulated scenes. These findings are not an analysis of your property or files. Review each suggestion against its evidence."
+              banner="Real model results: SAM 3.1 segmentation and Muse Spark classifications on Muse Image-generated test scenes. The models ran beforehand; no live model calls happen here. These findings are not an analysis of your property or files. Review each suggestion against its evidence."
             />
       </div>
     </main>

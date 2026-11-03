@@ -61,7 +61,7 @@ export default function EvidencePair({ before, after, label, simulated = false }
             </button>
           </div>
           <p id={descriptionId} className="meta evidence-description">
-            {simulated ? "Simulated, precomputed evidence: these generated scenes are not photographs of an actual tenancy. " : ""}
+            {simulated ? "Simulated input imagery: these generated scenes are not photographs of an actual tenancy. " : ""}
             Item crops are shown without trimming. Compare both stages; framing and scale can differ.
           </p>
           {images.length > 1 && (

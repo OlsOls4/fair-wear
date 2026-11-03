@@ -77,16 +77,17 @@ check("agreement is conditional and makes no percentage or liability admission",
 
 check("simulated data always carries a disclaimer, even when excluded", () => {
   const f = { ...finding("demo", "no_change"), simulated: true };
-  assert.match(replyDraft("Demo", [f]), /SIMULATED DEMO: not a reply about an actual tenancy\./);
-  assert.doesNotMatch(replyDraft("Real property", [finding("real", "damage")]), /SIMULATED DEMO/);
+  assert.match(replyDraft("Demo", [f]), /DEMO DATA: not a reply about an actual tenancy\./);
+  assert.doesNotMatch(replyDraft("Real property", [finding("real", "damage")]), /DEMO DATA/);
 });
 
 check("precomputed sample provenance survives text export", () => {
   const f: F = { ...finding("sample", "damage"), simulated: true, provenance: "precomputed_generated_sample" };
   const draft = replyDraft("Sample", [f]);
-  assert.match(draft, /SOURCE: includes precomputed model findings from generated sample scenes/);
+  assert.match(draft, /SOURCE: includes real SAM 3.1 and Muse Spark pipeline outputs from an offline run on Muse Image-generated scenes/);
   assert.match(draft, /not an analysis of your property or files/);
-  assert.doesNotMatch(replyDraft("Other", [finding("other", "damage")]), /SOURCE: includes precomputed/);
+  assert.match(draft, /The models ran beforehand; no live model calls/);
+  assert.doesNotMatch(replyDraft("Other", [finding("other", "damage")]), /SOURCE: includes real SAM/);
 });
 
 check("empty and fully excluded drafts have no item responses", () => {

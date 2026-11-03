@@ -1,6 +1,6 @@
 # Fair Wear demo script
 
-Target: under 3 minutes. This script describes the review UI rebuilt from the public 30 Oct baseline. Record the tested version actually running on screen. Keep **Simulated, precomputed prototype** visible. Do not present the generated scenes as a real tenancy or imply live video analysis.
+Target: under 3 minutes. This script describes the review UI rebuilt from the public 30 Oct baseline. Record the tested version actually running on screen. Keep **Generated test images · Real model results** visible. Do not present the generated scenes as a real tenancy or imply live video analysis.
 
 ## 0:00–0:20: The problem and scope
 
