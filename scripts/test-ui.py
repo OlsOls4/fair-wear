@@ -5,6 +5,7 @@ existing Chromium binary. No model calls or external-site interactions.
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright, expect
 
 base = os.environ.get("FAIRWEAR_TEST_URL", "http://127.0.0.1:3200")
@@ -22,8 +23,10 @@ with sync_playwright() as p:
     if os.environ.get("FAIRWEAR_TEST_BROWSER_PATH"):
         launch["executable_path"] = os.environ["FAIRWEAR_TEST_BROWSER_PATH"]
     browser = p.chromium.launch(**launch)
-    context = browser.new_context(viewport={"width": 1280, "height": 1000}, accept_downloads=True)
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, accept_downloads=True)
     page = context.new_page()
+    external_requests = []
+    context.on("request", lambda request: external_requests.append(request.url) if urlsplit(request.url).netloc != urlsplit(base).netloc else None)
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(f"{base}/demo")
@@ -46,7 +49,35 @@ with sync_playwright() as p:
     expect(page.get_by_role("region", name="Published evaluation on generated imagery")).to_contain_text("no finding card was produced")
     passed("known false positive and unsegmented miss disclosed")
 
-    page.get_by_role("button", name="Show current draft", exact=True).click()
+    def review_shortcuts():
+        for label, finding_id in [("Inspect a change", "living-room-carpet-0-1"), ("Inspect a model error", "bedroom-carpet-0-0")]:
+            page.get_by_role("button", name="No change (13)", exact=True).click()
+            target = page.locator(f'[data-finding-id="{finding_id}"]')
+            expect(target).to_have_count(0)
+            shortcut = page.get_by_role("button", name=label, exact=True)
+            shortcut.focus()
+            page.keyboard.press("Enter")
+            expect(target).to_be_focused()
+            expect(page.locator("select")).to_have_count(20)
+            expect(page.get_by_role("button", name="All (20)", exact=True)).to_have_attribute("aria-pressed", "true")
+            box = target.bounding_box()
+            assert box and 0 <= box["y"] <= 48, box
+            shortcut.click()
+            expect(target).to_be_focused()
+            page.screenshot(path=str(artifacts / f'{finding_id}-{page.viewport_size["width"]}.png'))
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+    review_shortcuts()
+    passed("keyboard shortcuts reveal filtered findings, focus visible targets, and allow repeat activation")
+    opener = page.get_by_role("button", name="Open current draft", exact=True)
+    opener.focus()
+    page.keyboard.press("Enter")
+    heading = page.get_by_role("heading", name="Current response draft", exact=True)
+    expect(heading).to_be_focused()
+    expect(opener).to_have_attribute("aria-expanded", "true")
+    assert 0 <= heading.bounding_box()["y"] <= 24
+    opener.click()
+    expect(heading).to_be_focused()
     draft = page.get_by_test_id("current-draft")
     expect(draft).to_contain_text("DRAFT FOR REVIEW")
     expect(draft).to_contain_text("No amount is agreed")
@@ -68,8 +99,11 @@ with sync_playwright() as p:
     expect(draft).not_to_contain_text("[living-room-carpet-0-1]")
     response("bedroom-wall-0-1").select_option("Agree")
     expect(draft).to_contain_text("[bedroom-wall-0-1]: Agree in principle")
-    page.get_by_role("button", name="Hide current draft", exact=True).click()
-    page.get_by_role("button", name="Show current draft", exact=True).click()
+    page.get_by_role("button", name="Close current draft", exact=True).click()
+    expect(opener).to_be_focused()
+    expect(opener).to_have_attribute("aria-expanded", "false")
+    expect(draft).to_have_count(0)
+    opener.click()
     expect(draft).to_contain_text("[bedroom-wall-0-1]: Agree in principle")
     passed("manual Not claimed and no-change overrides respected after reply reopen")
 
@@ -97,7 +131,8 @@ with sync_playwright() as p:
     expect(response("kitchen-oven-0-0")).to_have_value("Agree")
     expect(response("living-room-carpet-0-1")).to_have_value("Agree")
     expect(response("bedroom-wall-0-1")).to_have_value("Not claimed")
-    passed("reset restores all suggested defaults")
+    review_shortcuts()
+    passed("reset restores all suggested defaults and shortcuts remain usable")
 
     card = page.locator('[data-finding-id="bedroom-carpet-0-0"]')
     enlarge = card.get_by_role("button", name="Enlarge move-in evidence for bedroom carpet", exact=True)
@@ -117,7 +152,9 @@ with sync_playwright() as p:
     enlarge.click()
     page.mouse.click(2, 2)
     expect(page.get_by_role("dialog")).not_to_be_visible()
-    passed("evidence enlarge, image switch, Escape, focus return, reopen, Close and backdrop dismissal")
+    page.get_by_role("button", name="Inspect a change", exact=True).click()
+    expect(page.locator('[data-finding-id="living-room-carpet-0-1"]')).to_be_focused()
+    passed("evidence enlarge, image switch, Escape, focus return, reopen, Close, backdrop dismissal and next shortcut")
     page.evaluate("window.scrollTo(0, 0)")
     page.screenshot(path=str(artifacts / "demo-desktop.png"))
 
@@ -127,7 +164,20 @@ with sync_playwright() as p:
     passed("reload resets decisions as disclosed")
     page.goto(base)
     expect(page.get_by_text("Generated test images · Real model results.", exact=False)).to_be_visible()
-    page.get_by_role("link", name="Explore sample comparison", exact=True).click()
+    primary_link = page.get_by_role("link", name="Try the sample review", exact=True)
+    primary_link.focus()
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(f"{base}/demo")
+    expect(page.get_by_role("heading", name="Findings board", exact=True)).to_be_visible()
+    expect(page.locator("select")).to_have_count(20)
+    expect(page.locator('input[type="file"]')).to_have_count(0)
+    page.go_back()
+    expect(page.get_by_role("heading", name="Fair Wear", exact=True)).to_be_visible()
+    page.go_forward()
+    expect(page.get_by_role("heading", name="Findings board", exact=True)).to_be_visible()
+    passed("primary home link reaches findings in one keyboard activation; Back and Forward work")
+    page.goto(base)
+    page.get_by_role("link", name="How it works", exact=True).click()
     expect(page.locator('input[type="file"]')).to_have_count(0)
     page.get_by_role("button", name="Show sample findings", exact=True).click()
     response("kitchen-oven-0-0").select_option("Dispute")
@@ -142,14 +192,35 @@ with sync_playwright() as p:
     passed("Back and Forward navigation works")
 
     page.set_viewport_size({"width": 390, "height": 844})
-    page.goto(f"{base}/demo")
+    page.goto(base)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.screenshot(path=str(artifacts / "home-mobile.png"))
+    page.get_by_role("link", name="Try the sample review", exact=True).click()
+    expect(page).to_have_url(f"{base}/demo")
+    review_shortcuts()
+    page.evaluate("window.scrollTo(0, 0)")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.screenshot(path=str(artifacts / "demo-mobile.png"))
     response("bathroom-bath-0-0").select_option("Agree")
-    page.get_by_role("button", name="Show current draft", exact=True).click()
+    response("kitchen-oven-0-0").select_option("Dispute")
+    review_shortcuts()
+    page.get_by_role("button", name="Open current draft", exact=True).click()
+    expect(page.get_by_role("heading", name="Current response draft", exact=True)).to_be_focused()
+    expect(page.get_by_test_id("current-draft")).to_contain_text("[kitchen-oven-0-0]: Dispute.")
+    page.screenshot(path=str(artifacts / "current-draft-mobile.png"))
     expect(page.get_by_test_id("current-draft")).to_contain_text("[bathroom-bath-0-0]: Agree in principle")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-    passed("mobile layout has no horizontal overflow and decisions update draft")
+    passed("mobile shortcuts, focus, layout and draft preserve changed choices without overflow")
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.add_style_tag(content="body { zoom: 2; }")
+    review_shortcuts()
+    page.get_by_role("button", name="Open current draft", exact=True).click()
+    expect(page.get_by_role("heading", name="Current response draft", exact=True)).to_be_focused()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.screenshot(path=str(artifacts / "current-draft-200-percent.png"))
+    passed("200% content zoom keeps shortcuts, focused draft and page width usable")
+    assert external_requests == [], external_requests
+    passed("all observed browser requests stayed local; no Meta API calls")
     assert errors == [], errors
     passed("no browser JavaScript errors")
     print(json.dumps({"checks": checks, "browser_errors": errors, "artifacts": str(artifacts)}))

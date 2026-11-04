@@ -37,3 +37,11 @@ button:disabled { opacity: .5; cursor: default; }
 .evaluation-note { margin: 10px 0; padding: 10px; background: #fff4d6; border-left: 3px solid #b7791f; font-size: 13px; line-height: 1.5; }
 
 h1, h2, .banner { overflow-wrap: anywhere; }
+
+.review-shortcuts { margin-top: 14px; }
+.review-shortcuts > .meta { font-weight: 600; }
+.review-shortcuts .row { margin: 6px 0 0; }
+.review-target { scroll-margin-top: 20px; }
+.review-target:focus { outline: 3px solid var(--info); outline-offset: 3px; }
+.current-draft { margin-top: 28px; }
+.home-actions { align-items: center; }

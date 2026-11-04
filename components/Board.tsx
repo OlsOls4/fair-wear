@@ -1,5 +1,5 @@
 "use client";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { DECISIONS, defaultDecision, defaultDecisionReason, type Decision } from "@/lib/decisions";
 import { replyDraft } from "@/lib/reply";
 import { confidenceLabel, type F } from "@/lib/findings";
@@ -17,6 +17,42 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
   const [showReply, setShowReply] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [copyStatus, setCopyStatus] = useState("");
+  const [navigationTarget, setNavigationTarget] = useState<{ findingId?: string } | null>(null);
+  const findingRefs = useRef(new Map<string, HTMLElement>());
+  const draftHeadingRef = useRef<HTMLHeadingElement>(null);
+  const draftOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const draftId = `${boardId}-current-reply`;
+  const reviewStops = [
+    { id: "living-room-carpet-0-1", label: "Inspect a change" },
+    { id: "bedroom-carpet-0-0", label: "Inspect a model error" },
+  ].filter((stop) => findings.some((finding) => finding.id === stop.id));
+  // Wait for React to reveal the destination before moving keyboard focus.
+  // A fresh target object also makes repeated navigation to the same stop work.
+  useEffect(() => {
+    if (!navigationTarget) return;
+    const destination = navigationTarget.findingId
+      ? findingRefs.current.get(navigationTarget.findingId)
+      : draftHeadingRef.current;
+    if (destination) {
+      destination.focus({ preventScroll: true });
+      destination.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+    setNavigationTarget(null);
+  }, [navigationTarget]);
+  function inspectFinding(id: string) {
+    setFilter("all");
+    setNavigationTarget({ findingId: id });
+  }
+  function openDraft(opener: HTMLButtonElement) {
+    draftOpenerRef.current = opener;
+    setShowReply(true);
+    setNavigationTarget({});
+  }
+  function closeDraft() {
+    setShowReply(false);
+    draftOpenerRef.current?.focus({ preventScroll: true });
+    draftOpenerRef.current?.scrollIntoView({ block: "center", behavior: "instant" });
+  }
   const counts = useMemo(() => { const c: Record<string, number> = {}; findings.forEach((f) => (c[f.verdict] = (c[f.verdict] ?? 0) + 1)); return c; }, [findings]);
   const decisionCounts: Record<Decision, number> = { Agree: 0, Dispute: 0, "Not claimed": 0 };
   findings.forEach((f) => decisionCounts[decisions[f.id] ?? defaultDecision(f)]++);
@@ -43,6 +79,13 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
       <h2 style={{ margin: "8px 0" }}>{property}</h2>
       <section className="card review-intro" aria-label="Review your suggested responses">
         <b>Review your suggested responses</b>
+        <div className="review-shortcuts" role="group" aria-label="Try this review">
+          <span className="meta">Try this review</span>
+          <div className="row">
+            {reviewStops.map((stop) => <button className="chip" key={stop.id} onClick={() => inspectFinding(stop.id)}>{stop.label}</button>)}
+            <button className="btn" aria-expanded={showReply} aria-controls={draftId} onClick={(event) => openDraft(event.currentTarget)}>Open current draft</button>
+          </div>
+        </div>
         <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Agree means provisional agreement, subject to evidence and cost review. Not claimed leaves the item out of your draft.</p>
         <p className="meta">Nothing is sent. Your selections stay on this page and reset on reload. The draft updates from all your choices, including items hidden by a filter.</p>
         <div className="row" aria-live="polite" data-testid="decision-summary">
@@ -54,6 +97,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
         <button className={`chip ${filter === "all" ? "on" : ""}`} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All ({findings.length})</button>
         {ORDER.filter((v) => counts[v]).map((v) => <button key={v} className={`chip ${filter === v ? "on" : ""}`} aria-pressed={filter === v} onClick={() => setFilter(v)}>{LABEL[v]} ({counts[v]})</button>)}
       </div>
+      <p className="meta" aria-live="polite" data-testid="filter-summary">Showing {shown.length} of {findings.length} findings{filter === "all" ? "." : `: ${LABEL[filter]}.`}</p>
       <div className="grid">
         {shown.map((f) => {
           const suggested = defaultDecision(f);
@@ -63,7 +107,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
           const calculation = f.verdict === "damage" || f.verdict === "missing"
             ? calculateShare(f.verdict, f.tenancyYears, f.ageYears, f.calculationBasis) : null;
           return (
-            <article className="card" key={f.id} data-finding-id={f.id}>
+            <article className="card review-target" key={f.id} data-finding-id={f.id} tabIndex={-1} aria-labelledby={`${inputId}-item ${inputId}-room`} ref={(element) => { if (element) findingRefs.current.set(f.id, element); else findingRefs.current.delete(f.id); }}>
               <span className={`badge v-${f.verdict}`}>Model: {LABEL[f.verdict] ?? f.verdict}</span>
               <h3 id={`${inputId}-item`} style={{ marginTop: 8 }}>{f.item}</h3>
               <div className="room" id={`${inputId}-room`}>{f.room}{f.simulated ? " · simulated imagery" : ""}</div>
@@ -90,16 +134,12 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
           );
         })}
       </div>
-      <section className="current-draft" aria-label="Current response draft">
-        <div className="row" style={{ marginTop: 24 }}>
-          <button className="btn" aria-expanded={showReply} aria-controls="current-reply" onClick={() => setShowReply((s) => !s)}>{showReply ? "Hide" : "Show"} current draft</button>
-        </div>
+      <section id={draftId} className="current-draft" aria-labelledby={`${draftId}-heading`} hidden={!showReply}>
+        <h2 id={`${draftId}-heading`} className="review-target" ref={draftHeadingRef} tabIndex={-1}>Current response draft</h2>
         <p className="meta">Generated locally from your selected responses. Review every line before sharing. No deduction amount is accepted and no message is sent.</p>
-        {showReply && <div id="current-reply">
-          <div className="row"><button className="chip" onClick={copyDraft}>Copy current draft</button><button className="chip" onClick={downloadDraft}>Download current draft (.txt)</button></div>
-          <div role="status">{copyStatus}</div>
-          <pre className="reply" data-testid="current-draft">{draft}</pre>
-        </div>}
+        <div className="row"><button className="chip" onClick={copyDraft}>Copy current draft</button><button className="chip" onClick={downloadDraft}>Download current draft (.txt)</button><button className="chip" onClick={closeDraft}>Close current draft</button></div>
+        <div role="status">{copyStatus}</div>
+        {showReply && <pre className="reply" data-testid="current-draft">{draft}</pre>}
       </section>
       {(reply || pdf) && <section className="archived-artifacts" aria-label="Original precomputed demo artifacts">
         <h3>Original precomputed demo artifacts (30 Oct)</h3>
