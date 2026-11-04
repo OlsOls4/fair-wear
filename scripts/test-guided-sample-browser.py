@@ -1,0 +1,48 @@
+"""Focused local browser checks for the optional three-claim navigation."""
+import os
+from pathlib import Path
+from playwright.sync_api import sync_playwright, expect
+
+base = os.environ.get("FAIRWEAR_TEST_URL", "http://127.0.0.1:3200")
+artifacts = Path(os.environ.get("FAIRWEAR_TEST_ARTIFACTS", "/tmp/fair-wear-guided-browser"))
+artifacts.mkdir(parents=True, exist_ok=True)
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True, executable_path=os.environ.get("FAIRWEAR_TEST_BROWSER_PATH", "/usr/bin/chromium"))
+    for width in [1280, 390]:
+        page = browser.new_page(viewport={"width": width, "height": 900})
+        page.goto(base + "/demo")
+        expect(page.locator("[data-finding-id]")).to_have_count(20)
+        guide = page.get_by_role("button", name="Review sample claim 1: bedroom carpet", exact=True)
+        expect(guide).to_be_visible()
+        assert guide.bounding_box()["y"] < page.locator("#sample-evaluation").bounding_box()["y"]
+        page.screenshot(path=str(artifacts / f"guide-{width}.png"), full_page=False)
+        guide.focus()
+        page.keyboard.press("Enter")
+        carpet = page.locator('[data-finding-id="bedroom-carpet-0-0"]')
+        expect(carpet).to_be_focused()
+        expect(page.get_by_test_id("sample-choice-progress")).to_contain_text("0 of 3")
+        carpet.get_by_role("button", name="Confirm Dispute:", exact=False).click()
+        expect(guide).to_contain_text("Response selected")
+        carpet.get_by_role("button", name="Next: kitchen oven", exact=True).focus()
+        page.keyboard.press("Enter")
+        oven = page.locator('[data-finding-id="kitchen-oven-0-0"]')
+        expect(oven).to_be_focused()
+        oven.get_by_role("button", name="Next: bathroom bath", exact=True).click()
+        expect(page.locator('[data-finding-id="bathroom-bath-0-0"]')).to_be_focused()
+        expect(page.get_by_test_id("sample-choice-progress")).to_contain_text("1 of 3")
+        expect(page.locator("[data-finding-id]")).to_have_count(20)
+        page.get_by_role("button", name="No change (13)", exact=True).click()
+        guide.click()
+        expect(carpet).to_be_focused()
+        expect(page.get_by_role("button", name="All (20)", exact=True)).to_have_attribute("aria-pressed", "true")
+        expect(page.get_by_test_id("sample-choice-progress")).to_contain_text("1 of 3")
+        page.reload()
+        expect(guide).to_contain_text("Response selected")
+        expect(page.get_by_test_id("sample-choice-progress")).to_contain_text("1 of 3")
+        page.goto(base + "/demo#sample-evaluation")
+        expect(page.locator("#sample-evaluation")).to_be_in_viewport()
+        expect(page.locator("#sample-evaluation .evaluation-metrics > div")).to_have_count(5)
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        page.close()
+    browser.close()
+print("PASS desktop/mobile guided review: keyboard/focus, explicit selection, next/skip, filter reveal, reload, evaluation anchor, no overflow")

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { DECISIONS, DECISION_LABELS, defaultDecision, defaultDecisionReason, type Decision } from "@/lib/decisions";
 import { replyDraft } from "@/lib/reply";
 import { confidenceLabel, type F } from "@/lib/findings";
@@ -16,7 +16,7 @@ const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear 
 const transferableIds = new Set<string>(SAMPLE_CASE_EXAMPLES.map((item) => item.id));
 const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved", "no_change"];
 
-export default function Board({ property, findings, banner, reply, pdf, rememberSampleResponses = false, allowEvidenceNavigation = false }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string; rememberSampleResponses?: boolean; allowEvidenceNavigation?: boolean }) {
+export default function Board({ property, findings, banner, reply, pdf, rememberSampleResponses = false, allowEvidenceNavigation = false, evaluation }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string; rememberSampleResponses?: boolean; allowEvidenceNavigation?: boolean; evaluation?: ReactNode }) {
   const boardId = useId();
   const [filter, setFilter] = useState("all");
   const [showReply, setShowReply] = useState(false);
@@ -89,6 +89,10 @@ export default function Board({ property, findings, banner, reply, pdf, remember
     { id: "bedroom-carpet-0-0", label: "Inspect a change" },
     { id: "bathroom-bath-0-0", label: "Inspect a label mismatch" },
   ].filter((stop) => findings.some((finding) => finding.id === stop.id));
+  const sampleStops = SAMPLE_CASE_EXAMPLES.flatMap((example) => {
+    const finding = findings.find((item) => item.id === example.id);
+    return finding ? [{ id: example.id, label: `${finding.room} ${finding.item}` }] : [];
+  });
   // Wait for React to reveal the destination before moving keyboard focus.
   // A fresh target object also makes repeated navigation to the same stop work.
   useEffect(() => {
@@ -120,6 +124,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   const decisionCounts: Record<Decision, number> = { Agree: 0, Dispute: 0, "Not claimed": 0 };
   findings.forEach((f) => decisionCounts[decisions[f.id] ?? defaultDecision(f)]++);
   const shown = findings.filter((f) => filter === "all" || f.verdict === filter).sort((a, b) => ORDER.indexOf(a.verdict) - ORDER.indexOf(b.verdict));
+  const hasSelectedSampleResponse = Object.keys(decisions).some((id) => transferableIds.has(id));
   const draft = useMemo(() => replyDraft(property, findings, decisions), [property, findings, decisions]);
   function discardPreparedHandoff() {
     // A failed review save must not skip invalidating an older navigation snapshot.
@@ -201,13 +206,17 @@ export default function Board({ property, findings, banner, reply, pdf, remember
       <section className="card review-intro" aria-label="Review your suggested responses">
         <b>Review your suggested responses</b>
         <div className="review-shortcuts" role="group" aria-label="Try this review">
-          <span className="meta">Try this review</span>
+          <span className="meta">{rememberSampleResponses ? "Start with three sample claims" : "Try this review"}</span>
+          {rememberSampleResponses && <p className="meta">Review the evidence, then confirm or change each response. These are the only three findings that can carry into the fictional case. Jumping between them does not select a response; all {findings.length} findings remain available.</p>}
           <div className="row">
-            {reviewStops.map((stop) => <button className="chip" key={stop.id} onClick={() => inspectFinding(stop.id)}>{stop.label}</button>)}
+            {rememberSampleResponses ? sampleStops.map((stop, index) => <button className="chip sample-review-stop" key={stop.id} aria-label={`Review sample claim ${index + 1}: ${stop.label}`} aria-describedby={`${boardId}-sample-stop-${index}`} onClick={() => inspectFinding(stop.id)}>
+              <span>{index + 1}. {stop.label}</span>
+              <span className="meta" id={`${boardId}-sample-stop-${index}`}>{Object.hasOwn(decisions, stop.id) ? "Response selected" : "Not selected"}</span>
+            </button>) : reviewStops.map((stop) => <button className="chip" key={stop.id} onClick={() => inspectFinding(stop.id)}>{stop.label}</button>)}
             <button className="btn" aria-expanded={showReply} aria-controls={draftId} onClick={(event) => openDraft(event.currentTarget)}>Open current draft</button>
           </div>
         </div>
-        {rememberSampleResponses && <p className="meta">Start with the bedroom carpet: a planted fair-wear change the model called damage. Change or confirm its response, then Continue to case builder to carry that choice into the matching fictional claim. The second stop shows the bath mislabelled as cleaning.</p>}
+        {rememberSampleResponses && <p className="meta">Start with the bedroom carpet: the model’s damage label disagrees with planted fair-wear intent. Next review the kitchen oven, then the bathroom bath, whose cleaning label disagrees with planted damage intent. These are generated examples, not findings of responsibility.</p>}
         <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Discuss after evidence does not accept responsibility or a charge. Untouched suggestions appear as review pending in the draft. Not claimed leaves the item out of your draft.</p>
         <p className="meta">Nothing is sent. The draft updates from all your choices, including items hidden by a filter.</p>
         <p className="meta" data-testid="review-storage-notice" aria-live="polite">
@@ -236,6 +245,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
           <p role="status">{transferError}</p>
         </section>}
       </section>
+      {evaluation}
       <div className="row" role="group" aria-label="Filter model verdicts">
         <button className={`chip ${filter === "all" ? "on" : ""}`} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All ({findings.length})</button>
         {ORDER.filter((v) => counts[v]).map((v) => <button key={v} className={`chip ${filter === v ? "on" : ""}`} aria-pressed={filter === v} onClick={() => setFilter(v)}>{LABEL[v]} ({counts[v]})</button>)}
@@ -247,6 +257,8 @@ export default function Board({ property, findings, banner, reply, pdf, remember
           const selected = decisions[f.id] ?? suggested;
           // Keep DOM IDREFs whitespace-free even when model item labels contain spaces.
           const inputId = `${boardId}-finding-${findings.indexOf(f)}`;
+          const sampleStopIndex = sampleStops.findIndex((stop) => stop.id === f.id);
+          const nextSampleStop = sampleStopIndex >= 0 ? sampleStops[sampleStopIndex + 1] : undefined;
           const calculation = f.verdict === "damage" || f.verdict === "missing"
             ? calculateShare(f.verdict, f.tenancyYears, f.ageYears, f.calculationBasis) : null;
           return (
@@ -286,8 +298,10 @@ export default function Board({ property, findings, banner, reply, pdf, remember
                     : "Suggested only, not your decision. Confirm or change this response to use it in your draft."}</p>
                 </div>
                 {rememberSampleResponses && transferableIds.has(f.id) && <div className="card-case-handoff">
-                  <p className="meta" id={`${inputId}-handoff`}>Continue with the fictional carpet, oven and bath claims. All explicitly selected responses for those three carry over; untouched claims start as Question this deduction. No charge is accepted.{!Object.hasOwn(decisions, f.id) && " Confirm or change this response first."}</p>
-                  <button type="button" className="chip" aria-describedby={`${inputId}-handoff`} disabled={sampleStorage === "loading" || transferring || !Object.hasOwn(decisions, f.id)} onClick={continueToCase}>Continue with current choices</button>
+                  <p className="meta">Sample claim {sampleStopIndex + 1} of {sampleStops.length}. {nextSampleStop ? "You can review the next claim without selecting this response." : "You have reached the last sample claim. Continuing carries only responses you explicitly selected."}</p>
+                  {nextSampleStop && <button type="button" className="chip" onClick={() => inspectFinding(nextSampleStop.id)}>Next: {nextSampleStop.label}</button>}
+                  <p className="meta" id={`${inputId}-handoff`}>Continue with the fictional carpet, oven and bath claims. All explicitly selected responses for those three carry over; untouched claims start as Question this deduction. No charge is accepted.{!hasSelectedSampleResponse && " Confirm or change a response on one of these three claims first."}</p>
+                  <button type="button" className="chip" aria-describedby={`${inputId}-handoff`} disabled={sampleStorage === "loading" || transferring || !hasSelectedSampleResponse} onClick={continueToCase}>Continue with current choices</button>
                 </div>}
                 <div className="meta" id={`${inputId}-reason`}>{selected !== suggested ? `You changed the suggested response (${DECISION_LABELS[suggested]}). ` : ""}{defaultDecisionReason(f)}</div>
               </div>

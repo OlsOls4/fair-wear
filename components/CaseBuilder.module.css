@@ -18,3 +18,7 @@
 
 /* Leave room around the editor when explicit mobile navigation reveals it. */
 .editor{scroll-margin-top:16px}.itemHeading h2:focus-visible{outline:3px solid #497343;outline-offset:4px}
+
+.guidance{margin-top:28px;padding:22px;border:1px solid var(--border);border-radius:14px;font-size:13px;line-height:1.65;overflow-wrap:anywhere}.guidance h2{font-size:21px;margin:0 0 10px}.guidance ol,.guidance ul{padding-left:22px}.guidance li+li{margin-top:10px}.guidance summary{cursor:pointer;font-weight:650;min-height:44px;align-content:center}.guidance a{color:var(--green);text-decoration:underline;text-underline-offset:3px}.guidance a:focus-visible,.guidance summary:focus-visible{outline:3px solid #497343;outline-offset:4px}
+
+.exportWarning{margin:0;padding:12px 14px;border-left:3px solid var(--green);background:#fff;color:var(--dark);font-size:13px;line-height:1.6}

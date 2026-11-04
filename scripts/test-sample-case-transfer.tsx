@@ -109,7 +109,7 @@ async function main() {
   async function setResponse(value: string) { await act(async () => host.querySelector<HTMLInputElement>(`input[type=radio][value=${value}]`)!.click()); }
   const board = <Board rememberSampleResponses property={demoData.property} findings={demoFindings} />;
   await mount(board);
-  await click("Inspect a change");
+  await click("1. bedroom carpet");
   ok("first guided stop is the bedroom carpet supported by the case handoff", () => {
     assert.equal(document.activeElement?.getAttribute("data-finding-id"), carpet);
     assert.ok(samples.some((item) => item.model?.id === carpet));
@@ -121,10 +121,10 @@ async function main() {
     assert.equal(host.querySelectorAll('button[aria-label^="Confirm "]').length, demoFindings.length);
     assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), null);
   });
-  const cardContinue = (id: string) => host.querySelector<HTMLButtonElement>(`[data-finding-id="${id}"] .card-case-handoff button`);
+  const cardContinue = (id: string) => host.querySelector<HTMLButtonElement>(`[data-finding-id="${id}"] .card-case-handoff button[aria-describedby]`);
   await act(async () => cardContinue(carpet)!.click());
   ok("card shortcuts exist only for supported claims and do not confirm pending suggestions", () => {
-    assert.equal(host.querySelectorAll(".card-case-handoff button").length, 3);
+    assert.equal(host.querySelectorAll(".card-case-handoff button[aria-describedby]").length, 3);
     assert.equal(cardContinue(other), null);
     assert.ok(cardContinue(carpet)!.disabled);
     assert.equal(storage.getItem(KEY), null);
@@ -136,7 +136,7 @@ async function main() {
     assert.match(progress(), /1 of 3/);
     assert.deepEqual(JSON.parse(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY)!).responses, { [carpet]: "Dispute" });
     assert.match(text(), /confirmed suggestion/);
-    assert.doesNotMatch(host.querySelector(`[data-finding-id="${carpet}"] .card-case-handoff`)!.textContent!, /Confirm or change this response first/);
+    assert.doesNotMatch(host.querySelector(`[data-finding-id="${carpet}"] .card-case-handoff`)!.textContent!, /Confirm or change a response on one of these three claims first/);
   });
   const navigationBeforeShortcut = attemptedNavigations;
   await act(async () => { cardContinue(carpet)!.click(); cardContinue(carpet)!.click(); });
