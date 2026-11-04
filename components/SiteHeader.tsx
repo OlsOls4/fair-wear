@@ -1,5 +1,6 @@
 "use client";
 
+import ArrowIcon from "@/components/ArrowIcon";
 import { usePathname } from "next/navigation";
 
 export default function SiteHeader() {
@@ -15,7 +16,7 @@ export default function SiteHeader() {
           <a href="/upload" aria-current={pathname === "/upload" ? "page" : undefined}>How it works</a>
           <a href="/inspect" aria-current={pathname === "/inspect" ? "page" : undefined}>Evidence lab</a>
           <a href="/case-builder" aria-current={pathname === "/case-builder" ? "page" : undefined}>Case builder</a>
-          <a className="nav-review" href="/demo" aria-current={pathname === "/demo" ? "page" : undefined}>Sample review <span aria-hidden="true">↗</span></a>
+          <a className="nav-review" href="/demo" aria-current={pathname === "/demo" ? "page" : undefined}>Sample review <ArrowIcon /></a>
         </nav>
       </div>
     </header>

@@ -1,5 +1,6 @@
 "use client";
 
+import ArrowIcon from "@/components/ArrowIcon";
 import { useState } from "react";
 import Board from "@/components/Board";
 import DemoEvaluation from "@/components/DemoEvaluation";
@@ -17,7 +18,7 @@ export default function Upload() {
 
   return (
     <main id="main-content" className="wrap workflow-page">
-      <div className="page-heading"><div><p className="eyebrow">Behind the comparison</p><h1>Explore a sample comparison</h1><p>From two visits to a response you can review.</p></div><a className="text-link" href="/demo">Go to the findings <span aria-hidden="true">↗</span></a></div>
+      <div className="page-heading"><div><p className="eyebrow">Behind the comparison</p><h1>Explore a sample comparison</h1><p>From two visits to a response you can review.</p></div><a className="text-link" href="/demo">Go to the findings <ArrowIcon /></a></div>
       <div className="banner">Generated test images · Real model results. Muse Image created the test scenes; SAM 3.1 and Muse Spark analysed them beforehand in an offline run. No live model calls happen here. No personal videos are requested or analysed.</div>
       <section className="workflow-section" aria-labelledby="sample-workflow-title">
         <h2 id="sample-workflow-title">How a comparison is structured</h2>

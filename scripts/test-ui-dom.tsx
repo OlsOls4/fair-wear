@@ -8,6 +8,7 @@ import Board from "../components/Board";
 import Sample from "../app/upload/page";
 import Home from "../app/page";
 import SiteHeader from "../components/SiteHeader";
+import EvidencePair from "../components/EvidencePair";
 import { demoData, demoFindings } from "../lib/demo";
 
 async function main() {
@@ -209,18 +210,77 @@ async function main() {
   const enlarge = evidenceCard.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!;
   await act(async () => enlarge.click());
   const dialog = evidenceCard.querySelector("dialog")!;
-  ok("evidence opens the selected image using mocked dialog API", () => {
+  ok("paired evidence opens a centered comparison using mocked dialog API", () => {
     assert.equal(dialog.open, true);
+    assert.equal(dialog.querySelectorAll("img").length, 2);
     assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg");
     assert.match(dialog.textContent!, /Simulated input imagery/);
+    const slider = dialog.querySelector<HTMLInputElement>('input[type="range"]')!;
+    assert.equal(slider.value, "50");
+    assert.equal(slider.getAttribute("aria-label"), "Reveal move-in or move-out evidence for bedroom carpet");
+    assert.equal(slider.getAttribute("aria-valuetext"), "50% move-in, 50% move-out");
+    assert.match(document.getElementById(slider.getAttribute("aria-describedby")!)!.textContent!, /Framing and scale can differ; the divider is a visual aid, not an aligned measurement/);
+    assert.equal(dialog.querySelectorAll("a").length, 2);
     const original = dialog.querySelector("a")!;
     assert.equal(original.getAttribute("target"), "_blank");
     assert.equal(original.getAttribute("rel"), "noopener noreferrer");
     assert.equal(original.getAttribute("href"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg");
   });
   const evidenceButton = (label: string) => Array.from(dialog.querySelectorAll("button")).find((b) => b.textContent === label)!;
+  const scene = dialog.querySelector<HTMLDivElement>(".evidence-comparison-scene")!;
+  let captured: number | null = null;
+  scene.setPointerCapture = (id) => { captured = id; };
+  scene.hasPointerCapture = (id) => captured === id;
+  scene.releasePointerCapture = () => { captured = null; };
+  scene.getBoundingClientRect = () => ({ left: 0, width: 200 } as DOMRect);
+  async function pointer(type: string, x: number, extra: Record<string, number | boolean> = {}) {
+    await act(async () => {
+      const event = new dom.window.MouseEvent(type, { clientX: x, bubbles: true, button: 0 });
+      Object.defineProperties(event, Object.fromEntries(Object.entries({ pointerId: 1, isPrimary: true, ...extra }).map(([key, value]) => [key, { value }])));
+      scene.dispatchEvent(event);
+    });
+  }
+  await pointer("pointerdown", 150);
+  ok("report comparison captures a pointer and updates its reveal and accessible value", () => {
+    assert.equal(captured, 1);
+    assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "75");
+    assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.getAttribute("aria-valuetext"), "75% move-in, 25% move-out");
+    assert.equal((dialog.querySelector(".evidence-comparison-after") as HTMLElement).style.clipPath, "inset(0 0 0 75%)");
+  });
+  await pointer("pointermove", 100, { pointerId: 2 });
+  ok("other pointers cannot move an active report comparison", () => assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "75"));
+  await pointer("pointermove", 250);
+  ok("report comparison clamps an outside drag and hides the absent stage label", () => {
+    assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "100");
+    assert.equal((dialog.querySelector(".evidence-comparison-after-tag") as HTMLElement).hidden, true);
+    assert.equal(dialog.querySelector(".evidence-comparison-after")!.getAttribute("aria-hidden"), "true");
+  });
+  await pointer("pointerup", 250);
+  await pointer("pointermove", 20);
+  ok("report comparison ends its drag on pointer release", () => {
+    assert.equal(captured, null);
+    assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "100");
+  });
+  await pointer("pointerdown", 50);
+  await pointer("pointercancel", 50);
+  await pointer("pointermove", 180);
+  ok("cancelled pointer interaction cannot keep changing the divider", () => assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "25"));
+  await act(async () => evidenceButton("Compare").click());
+  ok("Compare restores the centered reveal after dragging", () => assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "50"));
   await act(async () => evidenceButton("Move-out").click());
-  ok("evidence switches to the matching after image", () => assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_out-carpet-0.jpg"));
+  ok("evidence switches to the full matching after image without a clipped overlay", () => {
+    assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_out-carpet-0.jpg");
+    assert.equal(dialog.querySelectorAll("img").length, 1);
+    assert.equal(dialog.querySelector('input[type="range"]'), null);
+    assert.equal(dialog.querySelector("a")!.getAttribute("href"), "/demo/flat/crops/bedroom-move_out-carpet-0.jpg");
+  });
+  await act(async () => evidenceButton("Move-in").click());
+  ok("move-in remains available in full", () => {
+    assert.equal(dialog.querySelectorAll("img").length, 1);
+    assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg");
+  });
+  await act(async () => evidenceButton("Compare").click());
+  ok("comparison can be restored after either full image", () => assert.equal(dialog.querySelector<HTMLInputElement>('input[type="range"]')!.value, "50"));
   await act(async () => evidenceButton("Close").click());
   ok("app restores focus to the evidence opener", () => assert.equal(document.activeElement, enlarge));
   await act(async () => enlarge.click());
@@ -263,6 +323,23 @@ async function main() {
     assert.doesNotMatch(text, /999%/);
     assert.match(text, /not verified facts or tenant liability/);
   });
+  for (const stage of ["before", "after"] as const) {
+    await act(async () => root.render(<EvidencePair key={stage} {...{ [stage]: "/single.jpg" }} label="Single crop" />));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!.click());
+    ok(`only ${stage} evidence retains an unclipped single-image fallback`, () => {
+      const singleDialog = host.querySelector("dialog")!;
+      assert.equal(singleDialog.open, true);
+      assert.equal(singleDialog.querySelectorAll("img").length, 1);
+      assert.equal(singleDialog.querySelector("img")!.getAttribute("src"), "/single.jpg");
+      assert.equal(singleDialog.querySelector('input[type="range"]'), null);
+      assert.equal(singleDialog.querySelector('[role="group"]'), null);
+      assert.match(singleDialog.textContent!, new RegExp(`Only move-${stage === "before" ? "in" : "out"} evidence is available`));
+      assert.equal(singleDialog.querySelector("a")!.getAttribute("href"), "/single.jpg");
+    });
+    await act(async () => host.querySelector("dialog")!.close());
+  }
+  await act(async () => root.render(<EvidencePair label="No crops" />));
+  ok("missing evidence does not produce an empty comparison or dialog", () => assert.equal(host.innerHTML, ""));
   await act(async () => root.unmount());
   dom.window.close();
   console.log(`Passed ${checks} DOM checks. Native API mocks do not establish browser behavior.`);

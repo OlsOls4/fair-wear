@@ -1,11 +1,12 @@
 "use client";
+import ArrowIcon from "@/components/ArrowIcon";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCaseHtml, caseReply, caseTotals, emptyCaseItem, moneyPence, pounds, replacementIllustration, RESPONSE_LABELS, type CaseDocument, type CaseItem, type CaseMode, type CaseResponse, type CostType } from "@/lib/case-builder";
 import { embedCaseImages, localCaseImage } from "@/lib/case-images";
 import styles from "./CaseBuilder.module.css";
 import { confidenceLabel } from "@/lib/findings";
 
-function Arrow({ down = false }: { down?: boolean }) { return <span aria-hidden="true">{down ? "↓" : "↗"}</span>; }
+function Arrow({ down = false }: { down?: boolean }) { return <ArrowIcon direction={down ? "down" : "diagonal"} />; }
 export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }) {
   const [mode, setMode] = useState<CaseMode>("sample");
   const [title, setTitle] = useState("Demo flat: proposed deposit deductions");
