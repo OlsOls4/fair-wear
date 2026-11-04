@@ -31,7 +31,7 @@ with sync_playwright() as p:
  page.get_by_role('button',name='Continue to case builder').click()
  expect(page.get_by_test_id('sample-review-handoff')).to_contain_text('3 selected sample responses')
  expect(page).to_have_url(BASE+'/case-builder')
- expect(page.get_by_test_id('case-summary')).to_contain_text('Questioned£80.00For discussion£480.00')
+ expect(page.get_by_test_id('case-summary')).to_contain_text('Known questioned total£80.00Known discussion total£480.00')
  expect(page.get_by_test_id('case-summary')).to_contain_text('1 item(s) left out')
  assert page.evaluate('(key)=>sessionStorage.getItem(key)',TRANSFER) is None
  assert page.locator('button[aria-pressed]').count()==3
@@ -89,7 +89,7 @@ with sync_playwright() as p:
  assert 'PERSONAL_SENTINEL_NOT_SAVED' not in page.evaluate('()=>JSON.stringify({...sessionStorage,...localStorage})')
  page.get_by_role('button',name='Return to example').click()
  assert page.get_by_test_id('sample-review-handoff').count()==0
- expect(page.get_by_test_id('case-summary')).to_contain_text('Questioned£910.00For discussion£0.00')
+ expect(page.get_by_test_id('case-summary')).to_contain_text('Known questioned total£910.00Known discussion total£0.00')
  ok('private mode never imports/stores case data; return to example does not replay transfer')
  # Normal entry must ignore an unconsumed marker until that exact explicit URL is used.
  token='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -97,7 +97,7 @@ with sync_playwright() as p:
  page.evaluate('([key,value])=>sessionStorage.setItem(key,JSON.stringify(value))',[TRANSFER,seed])
  page.goto(BASE+'/case-builder',wait_until='networkidle')
  assert page.get_by_test_id('sample-review-handoff').count()==0
- expect(page.get_by_test_id('case-summary')).to_contain_text('Questioned£910.00For discussion£0.00')
+ expect(page.get_by_test_id('case-summary')).to_contain_text('Known questioned total£910.00Known discussion total£0.00')
  assert page.evaluate('(key)=>sessionStorage.getItem(key)',TRANSFER) is not None
  explicit=BASE+'/case-builder?from=sample-review&transfer='+token
  page.goto(explicit,wait_until='networkidle')
@@ -106,7 +106,7 @@ with sync_playwright() as p:
  page.goto(explicit,wait_until='networkidle')
  assert page.get_by_test_id('sample-review-handoff').count()==0
  expect(page.get_by_role('status').filter(has_text='No responses were imported')).to_be_visible()
- expect(page.get_by_test_id('case-summary')).to_contain_text('Questioned£910.00For discussion£0.00')
+ expect(page.get_by_test_id('case-summary')).to_contain_text('Known questioned total£910.00Known discussion total£0.00')
  ok('ordinary entry ignores pending transfer; exact marker applies once and replay imports nothing')
  # Inspect the handoff and export controls at a narrow phone width.
  mobile=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)

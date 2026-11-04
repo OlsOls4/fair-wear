@@ -1,4 +1,5 @@
 import { qualifyAnalysisRequest } from "./context";
+import { UnsupportedVideoAnalysisError } from "./video-support";
 import { SamResponseError } from "./sam-response";
 import { JudgeValidationError } from "./judgement";
 import { matchItems } from "./matching";
@@ -51,6 +52,10 @@ export function createAnalyzeHandler(deps: Dependencies) {
           : pack.replyDraft,
       } });
     } catch (error) {
+      if (error instanceof UnsupportedVideoAnalysisError) return Response.json({
+        mock: deps.mock, error: "video_analysis_unsupported",
+        message: error.message,
+      }, { status: 501 });
       if (error instanceof SamResponseError) return Response.json({
         mock: deps.mock, error: "segmentation_unavailable",
         message: "Segmentation did not return a complete, valid response. No findings or evidence pack were returned. Review the source evidence before retrying.",

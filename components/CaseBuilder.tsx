@@ -3,7 +3,7 @@ import { RENTER_GUIDANCE } from "@/lib/renter-guidance";
 import ArrowIcon from "@/components/ArrowIcon";
 import CasePhotoViewer from "@/components/CasePhotoViewer";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildCaseHtml, casePhotoLabels, casePhotoContextNote, caseReply, caseTotals, emptyCaseItem, moneyPence, pounds, replacementIllustration, RESPONSE_LABELS, sampleReviewDescription, type CaseDocument, type CaseItem, type CaseMode, type CaseResponse, type CostType, type PhotoContext } from "@/lib/case-builder";
+import { buildCaseHtml, casePhotoLabels, casePhotoContextNote, caseReply, caseTotals, caseTotalPresentation, emptyCaseItem, moneyPence, pounds, replacementIllustration, RESPONSE_LABELS, sampleReviewDescription, type CaseDocument, type CaseItem, type CaseMode, type CaseResponse, type CostType, type PhotoContext } from "@/lib/case-builder";
 import { applySampleCaseTransfer, SAMPLE_CASE_TRANSFER_SOURCE, takeSampleCaseTransfer } from "@/lib/sample-case-transfer";
 import { embedCaseImages, localCaseImage } from "@/lib/case-images";
 import { evidenceRows, evidenceRequests, EVIDENCE_DISCLAIMER, EVIDENCE_STATUS_LABELS, type EvidenceStatus } from "@/lib/case-evidence-gaps";
@@ -56,6 +56,7 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   const document: CaseDocument = useMemo(() => ({ mode, title, items, photoContext }), [mode, title, items, photoContext]);
   const totals = caseTotals(items), illustration = replacementIllustration(selected);
   const draft = caseReply(document);
+  const totalPresentation = caseTotalPresentation(items);
   const photoLabels = casePhotoLabels(document);
   const missingLabels = mode === "personal" ? items.flatMap((item, index) => item.response === "omit" ? [] : (["room", "item"] as const).filter((field) => !item[field].trim()).map((field) => ({ id: item.id, number: index + 1, field }))) : [];
   useEffect(() => {
@@ -170,7 +171,7 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
       <aside className={styles.sidebar} aria-label="Your deduction list"><div className={styles.sectionLabel}><span>01 / DEDUCTIONS</span><b>{items.length}</b></div><div className={styles.claims}>
         {items.map((item, index) => <button key={item.id} disabled={busy} className={`${styles.claim} ${selected.id === item.id ? styles.claimSelected : ""}`} aria-pressed={selected.id === item.id} onClick={() => selectItem(item.id)}><span className={styles.claimNumber}>{String(index + 1).padStart(2, "0")}</span><span><b>{item.item || "New deduction"}</b><small>{item.room || "Add a room"}</small><span className={styles.claimState}>{RESPONSE_LABELS[item.response]}</span></span><strong>{moneyPence(item.claimPounds) === null ? "£—" : pounds(moneyPence(item.claimPounds)!)}</strong></button>)}
       </div>{mode === "personal" && <button className={styles.addButton} disabled={busy || items.length >= 12} onClick={addItem}>+ Add a deduction {items.length >= 12 ? "(12-item limit)" : ""}</button>}
-      <div className={styles.summary} data-testid="case-summary"><span className={styles.sectionLabel}>YOUR RESPONSE TOTALS</span><p><span>Questioned</span><strong>{pounds(totals.question)}</strong></p><p><span>For discussion</span><strong>{pounds(totals.discuss)}</strong></p><small>{totals.unknown ? `${totals.unknown} included amount(s) unknown or invalid. ` : ""}{totals.omitted ? `${totals.omitted} item(s) left out. ` : ""}Sums of proposed deductions, not savings, accepted charges or liability.</small></div>
+      <div className={styles.summary} data-testid="case-summary"><span className={styles.sectionLabel}>YOUR RESPONSE TOTALS</span>{totalPresentation.incomplete && <div className={styles.incompleteTotals} role="status"><b>{totalPresentation.incomplete}</b></div>}<p><span>{totalPresentation.question.label}</span><strong>{totalPresentation.question.value}</strong></p><p><span>{totalPresentation.discuss.label}</span><strong>{totalPresentation.discuss.value}</strong></p><small>{totals.omitted ? `${totals.omitted} item(s) left out. ` : ""}Sums of known proposed deductions, not savings, accepted charges or liability.</small></div>
       </aside>
       <section ref={editorRef} className={styles.editor} aria-label="Review selected deduction">
         <div className={styles.sectionLabel}><span>02 / EVIDENCE & RESPONSE</span><span>{mode === "sample" ? "GENERATED SAMPLE IMAGERY" : "MANUAL REVIEW"}</span></div>

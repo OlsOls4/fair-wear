@@ -88,9 +88,9 @@ async function main() {
   await input('[aria-label="Age at move-in in years"]', "5");
   ok("assumption change updates illustration without changing claimed amount",()=>{assert.match(document.querySelector('[data-testid="replacement-illustration"]')!.textContent!,/£75.00/);assert.equal(document.querySelector<HTMLInputElement>('[aria-label="Proposed amount in pounds"]')!.value,"480");});
   await response("discuss");
-  ok("selected response changes claim and sidebar totals",()=>{assert.ok(document.querySelector<HTMLInputElement>('input[value=discuss]')!.checked);assert.match(document.querySelector('[data-testid="case-summary"]')!.textContent!,/Questioned£430.00For discussion£480.00/);});
+  ok("selected response changes claim and sidebar totals",()=>{assert.ok(document.querySelector<HTMLInputElement>('input[value=discuss]')!.checked);assert.match(document.querySelector('[data-testid="case-summary"]')!.textContent!,/Known questioned total£430.00Known discussion total£480.00/);});
   await click("oven");await response("omit");await click("carpet");
-  ok("responses survive claim navigation and omission updates totals",()=>{assert.ok(document.querySelector<HTMLInputElement>('input[value=discuss]')!.checked);assert.match(document.querySelector('[data-testid="case-summary"]')!.textContent!,/Questioned£350.00For discussion£480.00/);});
+  ok("responses survive claim navigation and omission updates totals",()=>{assert.ok(document.querySelector<HTMLInputElement>('input[value=discuss]')!.checked);assert.match(document.querySelector('[data-testid="case-summary"]')!.textContent!,/Known questioned total£350.00Known discussion total£480.00/);});
   await click("Preview response draft");
   ok("current draft reflects human choices and omits excluded claim",()=>{const draft=document.querySelector("#case-current-reply")!.textContent!;assert.match(draft,/willing to discuss/);assert.match(draft,/CORRECTED REVIEW NOTE/);assert.doesNotMatch(draft,/Clean oven/);assert.match(draft,/No amount is agreed/);});
   ok("record references never enter the third-party response draft", () => assert.doesNotMatch(document.querySelector("#case-current-reply")!.textContent!, /carpet inspection, page 4/));
@@ -102,6 +102,7 @@ async function main() {
   ok("cancelling destructive mode change preserves draft state",()=>assert.ok(text().includes("The evaluation disagrees")));
   confirm=true;await click("Start a private case");
   ok("confirmed private mode starts empty and drops sample model output",()=>{assert.match(text(),/manual evidence organiser/);assert.doesNotMatch(text(),/Recorded AI suggestion/);assert.equal(document.querySelectorAll("img").length,0);assert.equal(document.querySelector<HTMLInputElement>('[aria-label="Room"]')!.value,"");});
+  ok("empty private amount has incomplete notice and no invented questioned zero", () => { const summary = document.querySelector('[data-testid="case-summary"]')!.textContent!; assert.match(summary, /Total incomplete: 1 included amount is unknown or invalid/); assert.match(summary, /Known questioned totalNot yet known/); assert.doesNotMatch(summary, /Known questioned total£0/); });
   async function choosePhoto(label: string, name: string) {
     const el = document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
     Object.defineProperty(el, "files", { configurable: true, value: [new dom.window.File(["mock pixels"], name, { type: "image/jpeg" })] });
@@ -115,6 +116,10 @@ async function main() {
   ok("new private case does not retain sample record references", () => assert.equal(document.querySelector<HTMLTextAreaElement>('[aria-label="Supporting record references"]')!.value, ""));
   await input('[aria-label="Supporting record references"]', "PRIVATE RECORD: dated inspection report");
   await input('[aria-label="Item"]', "Private carpet");
+  await input('[aria-label="Proposed amount in pounds"]', "72");
+  ok("known private amount removes incomplete notice", () => { const summary = document.querySelector('[data-testid="case-summary"]')!.textContent!; assert.match(summary, /Known questioned total£72.00/); assert.doesNotMatch(summary, /Total incomplete/); });
+  await input('[aria-label="Proposed amount in pounds"]', "0");
+  ok("explicit zero remains a known valid amount", () => { const summary = document.querySelector('[data-testid="case-summary"]')!.textContent!; assert.match(summary, /Known questioned total£0.00/); assert.doesNotMatch(summary, /Total incomplete|Not yet known/); });
   await input('[aria-label="Proposed amount in pounds"]', "72");
   await input('textarea', "Keep my note");
   await toggleTracker(); await selectStatus("Move-in records", "provided");

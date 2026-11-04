@@ -25,3 +25,5 @@
 .removeDeduction{border-top:1px solid var(--border);padding-top:18px;margin-top:24px}.removeDeduction p{font-size:11px;line-height:1.6;color:#596660;max-width:580px}
 
 .exportReview{border:1px solid #b7c9a6;border-radius:12px;padding:20px;margin-top:18px;background:#f5f7ef}.exportReview h2{font-size:20px;margin:0 0 10px}.exportReview p{font-size:13px;line-height:1.6;max-width:780px}.exportReview ul{padding-left:20px}.exportReview li+li{margin-top:8px}.reviewActions{display:flex;gap:10px;flex-wrap:wrap}.exportReview:focus-visible{outline:3px solid #497343;outline-offset:3px}
+
+.incompleteTotals{width:100%;box-sizing:border-box;margin:14px 0;padding:12px;border-left:3px solid #627a3d;background:#fffdf0;font-size:12px;line-height:1.6}.summary strong{overflow-wrap:anywhere}

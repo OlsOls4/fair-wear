@@ -2,6 +2,8 @@
 
 Meta Global AI Developer Hackathon, Indie track, theme "Build for Your World". Build window 26 Oct – 4 Nov 2026 21:00 ET (5 Nov 02:00 UTC/GMT; corrected from 01:00 in this original plan).
 
+**Status note:** The flow below is the original build plan, not a supported video feature. End-to-end video analysis is now explicitly blocked before model calls because verified frame extraction/cropping is not connected. The recorded demonstration uses an independent still-image runner. See [current video support](video-analysis-support.md).
+
 ## User flow
 1. Tenant creates a "property" and picks rooms.
 2. Uploads a move-in walkthrough and a move-out walkthrough per room (phone video, 30–90 s each), plus tenancy length.

@@ -1,33 +1,23 @@
 import type { CalculationBasis, EvidencePack, Finding, Item, MatchedPair } from "./types";
-import { MOCK, museImageCard, museSparkJSON, museSparkText, sam31Track } from "./models";
+import { MOCK, museImageCard, museSparkJSON, museSparkText } from "./models";
 import { calculateShare, guidanceFor } from "./guidance";
 import { JUDGE_SCHEMA } from "./schema";
 import { judgePair } from "./judgement";
 import { JUDGE_SYSTEM, REPLY_SYSTEM } from "./prompts";
 
-// Stage 1: frames come from client-side sampling (1 fps) or ffmpeg on upload.
-// Stage 2: SAM 3.1 tracks rental-relevant items per room video.
+// The end-to-end video path is disabled until verified frame extraction/cropping is wired in.
+// The separate offline still-image runner remains available.
 export const ITEM_PROMPTS = ["wall", "carpet", "floor", "skirting board", "door", "window", "curtains", "worktop", "hob", "oven", "fridge", "sink", "bath", "shower screen", "toilet", "mattress", "sofa", "table", "wardrobe"];
 
-export async function extractItems(videoUrl: string, visit: Item["visit"], room: string, prompts: string[] = ITEM_PROMPTS, frames = 900): Promise<Item[]> {
-  // SAM 3.1 takes one concept per request, so run the item list in parallel batches.
-  const items: Item[] = [];
-  const batches = [];
-  for (let i = 0; i < prompts.length; i += 6) batches.push(prompts.slice(i, i + 6));
-  for (const batch of batches) {
-    const results = await Promise.all(batch.map((c) => sam31Track({ video_url: videoUrl }, c, frames).then((r) => [c, r] as const)));
-    for (const [label, recs] of results) {
-      const byId = new Map<string, typeof recs>();
-      recs.forEach((r) => byId.set(r.id, [...(byId.get(r.id) ?? []), r]));
-      for (const [oid, rs] of byId) {
-        // best frame = largest confident box
-        const best = rs.reduce((a, b) => ((b.box[2] - b.box[0]) * (b.box[3] - b.box[1]) * (b.conf ?? 1) > (a.box[2] - a.box[0]) * (a.box[3] - a.box[1]) * (a.conf ?? 1) ? b : a));
-        const box = best.w && best.h ? ([best.box[0] / best.w, best.box[1] / best.h, best.box[2] / best.w, best.box[3] / best.h] as [number, number, number, number]) : undefined;
-        items.push({ id: `${visit}-${room}-${label}-${oid}`, visit, room, label, box, maskRle: best.mask, bestFrame: { visit, room, t: best.frame, url: videoUrl } });
-      }
-    }
-  }
-  return items;
+export { UnsupportedVideoAnalysisError } from "./video-support";
+import { UnsupportedVideoAnalysisError } from "./video-support";
+
+/** Reserved video-pipeline entrypoint. Never treat a video URL/frame index as an image.
+ * Keep this signature for callers, but reject before sampling, SAM, matching or Spark.
+ * Still-image inference is independently implemented in scripts/run-demo.ts.
+ */
+export async function extractItems(_videoUrl: string, _visit: Item["visit"], _room: string, _prompts: string[] = ITEM_PROMPTS, _frames = 900): Promise<Item[]> {
+  throw new UnsupportedVideoAnalysisError();
 }
 
 // Stage 3: matching lives in ./matching (label + optional appearance, mutually unique best; no unregistered position).
