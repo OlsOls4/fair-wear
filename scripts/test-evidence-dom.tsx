@@ -10,6 +10,15 @@ import EvidenceLab from "../components/inspection/EvidenceLab";
 async function main() {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost" });
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, Event: dom.window.Event, React, IS_REACT_ACT_ENVIRONMENT: true });
+  let narrow = false;
+  dom.window.matchMedia = ((query: string) => { assert.equal(query, "(max-width: 800px)"); return { matches: narrow }; }) as typeof window.matchMedia;
+  let scrollCount = 0;
+  dom.window.HTMLElement.prototype.scrollIntoView = function (options) {
+    assert.equal(this.id, "inspect-case-title");
+    assert.equal(document.activeElement, this);
+    assert.deepEqual(options, { behavior: "instant", block: "start" });
+    scrollCount++;
+  };
   let downloaded: Blob | undefined;
   let filename = "";
   URL.createObjectURL = (blob) => { downloaded = blob as Blob; return "blob:inspection-test"; };
@@ -21,9 +30,20 @@ async function main() {
   const host = document.getElementById("root")!;
   let count = 0;
   function test(name: string, fn: () => void) { fn(); console.log(`ok ${++count} ${name}`); }
-  async function click(text: string) { const button = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes(text)); assert.ok(button, text); await act(async () => button.click()); }
+  async function click(text: string) { const button = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes(text)); assert.ok(button, text); button.focus(); await act(async () => button.click()); }
   function detail() { return host.querySelector('[data-testid="inspection-case"]')!; }
   await act(async () => root.render(<EvidenceLab />));
+  test("initial load does not move focus or scroll", () => { assert.equal(document.activeElement, document.body); assert.equal(scrollCount, 0); });
+  const inventoryButton = (label: string) => [...host.querySelectorAll<HTMLButtonElement>(".inspect-inventory button")].find((b) => b.querySelector("span")?.textContent === label)!;
+  async function inventoryClick(label: string) { const b = inventoryButton(label); b.focus(); await act(async () => b.click()); return b; }
+  const desktopButton = await inventoryClick("bath");
+  test("desktop inventory keeps focus on its button", () => { assert.equal(document.activeElement, desktopButton); assert.equal(scrollCount, 0); assert.equal(host.querySelector(".inspect-selection-status")?.textContent, "Selected bathroom · bath. Evidence details updated."); assert.equal(host.querySelector(".inspect-selection-status")?.getAttribute("role"), "status"); });
+  narrow = true;
+  await inventoryClick("carpet");
+  test("mobile inventory reveals committed selected heading", () => { assert.equal(document.activeElement?.id, "inspect-case-title"); assert.equal(document.activeElement?.textContent, "carpet"); assert.equal(scrollCount, 1); });
+  await inventoryClick("carpet");
+  test("reselecting a mobile item still reveals it", () => { assert.equal(document.activeElement?.id, "inspect-case-title"); assert.equal(scrollCount, 2); });
+  narrow = false;
   test("starts on recorded carpet mismatch with test-intent caveat", () => { assert.match(detail().textContent!, /Planted test intentfair wear/); assert.match(detail().textContent!, /82% self-reported confidence/); assert.match(detail().textContent!, /not independent pixel-level ground truth/); });
   test("board link carries only the selected public observation, not a review choice", () => {
     assert.equal(detail().querySelector('a[href^="/demo#finding="]')?.getAttribute("href"), "/demo#finding=bedroom-carpet-0-0");

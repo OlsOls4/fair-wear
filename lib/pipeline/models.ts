@@ -2,6 +2,7 @@
 // MOCK mode (no key or MOCK=1) returns fixtures so the UI works without credits.
 const BASE = process.env.META_API_BASE ?? "https://api.meta.ai/v1";
 import { PRICES, reserve, sparkCost } from "./budget";
+import { receiveSamOutput } from "./sam-response";
 const KEY = process.env.MODEL_API_KEY ?? process.env.META_API_KEY;
 // Paid calls need a key AND an explicit opt-in, and are never allowed on Vercel:
 // the public site only serves cached results or MOCK output.
@@ -12,13 +13,11 @@ export const SPARK_MODEL = process.env.SPARK_MODEL ?? "muse-spark-1.3";
 const headers = (): Record<string, string> => (KEY === "injected" ? { "Content-Type": "application/json" } : { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" });
 
 async function post(path: string, body: unknown, accept = "application/json") {
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const r = await fetch(`${BASE}${path}`, { method: "POST", headers: { ...headers(), Accept: accept }, body: JSON.stringify(body) });
-    if (r.status === 429 || r.status >= 500) { await new Promise((s) => setTimeout(s, 500 * 2 ** attempt + Math.random() * 250)); continue; }
-    if (!r.ok) throw new Error(`${path} ${r.status}: ${(await r.text()).slice(0, 300)}`);
-    return r;
-  }
-  throw new Error(`${path}: retries exhausted`);
+  // A failed response does not establish that the provider did no billable work.
+  // Do not retry transport failures under the same reservation.
+  const r = await fetch(`${BASE}${path}`, { method: "POST", headers: { ...headers(), Accept: accept }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${path} ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  return r;
 }
 
 // ---------- SAM 3.1 ----------
@@ -42,25 +41,18 @@ export function parseSamLines(text: string): SamRecord[] {
 }
 
 async function samCall(prompt: string, media: { image_url?: string; video_url?: string; file_id?: string }, kind: "image" | "video", frames = 1) {
-  const settle = reserve(`sam-3.1-${kind}`, kind === "image" ? PRICES.samImage : Math.max(1, frames) * PRICES.samVideoPerFrame, prompt);
+  if (kind === "video" && (!Number.isSafeInteger(frames) || frames < 1)) throw new Error("SAM video requires a positive integer frame bound");
+  const settle = reserve(`sam-3.1-${kind}`, kind === "image" ? PRICES.samImage : frames * PRICES.samVideoPerFrame, prompt);
   const part = kind === "image" ? { type: "input_image", ...media } : { type: "input_video", ...media };
   // SAM 3.1 only returns its special-token text over a stream (a non-stream call comes back empty but is still billed).
-  const r = await post("/responses", {
+  const text = await receiveSamOutput(() => post("/responses", {
     model: "sam-3.1",
     input: [{ type: "message", role: "user", content: [{ type: "input_text", text: prompt }, part] }],
     stream: true,
     metadata: { include_confidence: "true", mask_encoding: "one_bit" },
-  }, "text/event-stream");
-  const raw = await r.text();
+  }, "text/event-stream"));
   settle();
-  let text = "";
-  for (const line of raw.split("\n")) {
-    if (!line.startsWith("data: ")) continue;
-    const d = line.slice(6).trim();
-    if (d === "[DONE]") break;
-    try { const ev = JSON.parse(d); if (ev.type === "response.output_text.delta" && ev.delta) text += ev.delta; } catch { /* ignore keep-alives */ }
-  }
-  return parseSamLines(text ?? "");
+  return parseSamLines(text);
 }
 
 export async function sam31Segment(imageUrl: string, concept: string): Promise<SamRecord[]> {
@@ -76,7 +68,7 @@ export async function sam31Track(video: { video_url?: string; file_id?: string }
 
 // ---------- Muse Spark (vision + structured output) ----------
 const MAX_OUT = 3000; // Muse Spark spends most of its output budget on hidden reasoning tokens; a low cap returns empty content
-// Worst-case reservation: ~1 token per 3 chars, 2,000 tokens per image, full max_tokens out.
+// Estimated reservation (not a guaranteed billing upper bound): ~1 token per 3 chars, 2,000 tokens per image, full max_tokens out.
 function estimateSpark(text: string, images: number, maxOut: number) {
   return sparkCost(Math.ceil(text.length / 3) + images * 2000, maxOut);
 }
@@ -90,7 +82,7 @@ export async function museSparkJSON<T>(system: string, user: string, imageUrls: 
     response_format: schema ? { type: "json_schema", json_schema: { name: "out", schema, strict: true } } : { type: "json_object" },
   });
   const j = await r.json();
-  settle(j.usage ? sparkCost(j.usage.prompt_tokens ?? 0, j.usage.completion_tokens ?? 0) : undefined);
+  settle(j.usage ? sparkCost(j.usage.prompt_tokens, j.usage.completion_tokens) : undefined);
   return JSON.parse(j.choices?.[0]?.message?.content ?? "{}") as T;
 }
 
@@ -99,7 +91,7 @@ export async function museSparkText(system: string, user: string): Promise<strin
   const settle = reserve("muse-spark", estimateSpark(system + user, 0, 5000), "text");
   const r = await post("/chat/completions", { model: SPARK_MODEL, max_tokens: 5000, messages: [{ role: "system", content: system }, { role: "user", content: user }] });
   const j = await r.json();
-  settle(j.usage ? sparkCost(j.usage.prompt_tokens ?? 0, j.usage.completion_tokens ?? 0) : undefined);
+  settle(j.usage ? sparkCost(j.usage.prompt_tokens, j.usage.completion_tokens) : undefined);
   return j.choices?.[0]?.message?.content ?? "";
 }
 
@@ -117,11 +109,9 @@ export async function museImageCard(prompt: string): Promise<string> {
 export async function museImageRaw(prompt: string, refs: string[] = [], size = "1280x720"): Promise<Buffer> {
   if (MOCK) throw new Error("museImageRaw needs FAIRWEAR_ALLOW_PAID=1 and a key (sandbox only)");
   const settle = reserve("muse-image", PRICES.museImage, prompt.slice(0, 80));
-  let r: Response;
-  try { r = refs.length
+  const r = refs.length
     ? await post("/images/edits", { model: "muse-image-1.0", prompt, images: refs.map((u) => ({ image_url: u })), size, n: 1, response_format: "b64_json" })
     : await post("/images/generations", { model: "muse-image-1.0", prompt, size, n: 1, response_format: "b64_json" });
-  } catch (e) { settle(0); throw e; } // a refused/failed call was not billed
   const j = await r.json();
   settle(PRICES.museImage);
   const d = j.data?.[0];

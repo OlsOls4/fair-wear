@@ -50,7 +50,7 @@ with sync_playwright() as p:
     passed("known false positive and unsegmented miss disclosed")
 
     def review_shortcuts():
-        for label, finding_id in [("Inspect a change", "bedroom-carpet-0-0"), ("Inspect a label mismatch", "bathroom-bath-0-0")]:
+        for label, finding_id in [("Review sample claim 1: bedroom carpet", "bedroom-carpet-0-0"), ("Review sample claim 3: bathroom bath", "bathroom-bath-0-0")]:
             page.get_by_role("button", name="No change (13)", exact=True).click()
             target = page.locator(f'[data-finding-id="{finding_id}"]')
             expect(target).to_have_count(0)
@@ -187,7 +187,7 @@ with sync_playwright() as p:
     enlarge.click()
     page.mouse.click(2, 2)
     expect(page.get_by_role("dialog")).not_to_be_visible()
-    page.get_by_role("button", name="Inspect a change", exact=True).click()
+    page.get_by_role("button", name="Review sample claim 1: bedroom carpet", exact=True).click()
     expect(page.locator('[data-finding-id="bedroom-carpet-0-0"]')).to_be_focused()
     passed("evidence enlarge, image switch, Escape, focus return, reopen, Close, backdrop dismissal and next shortcut")
     page.evaluate("window.scrollTo(0, 0)")

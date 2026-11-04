@@ -1,0 +1,67 @@
+// Modal APIs are mocked in jsdom. Native Escape/focus trapping and rendered layout need browser QA.
+import assert from "node:assert/strict";
+import React, { act } from "react";
+import { createRequire } from "node:module";
+import { JSDOM } from "jsdom";
+const require = createRequire(import.meta.url);
+require.extensions[".css"] = (module: { exports: unknown }) => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_target, name) => String(name) }) }; };
+async function main() {
+  const { default: CasePhotoViewer } = await import("../components/CasePhotoViewer");
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: "http://localhost/case-builder" });
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, React, IS_REACT_ACT_ENVIRONMENT: true });
+  dom.window.HTMLDialogElement.prototype.showModal = function () { this.open = true; this.querySelector<HTMLButtonElement>('[autofocus]')?.focus(); };
+  dom.window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new dom.window.Event("close")); };
+  // @ts-expect-error Optional React DOM declaration package is not needed for this test.
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(document.getElementById("root")!);
+  const render = async (src: string, label: string, sample: boolean) => act(async () => root.render(<CasePhotoViewer src={src} label={label} item="Bedroom carpet" sample={sample} />));
+  const dialog = () => document.querySelector('dialog')!;
+  const opener = () => document.querySelector<HTMLButtonElement>('[aria-haspopup="dialog"]')!;
+  const button = (name: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find((el) => el.textContent === name)!;
+  const click = async (el: HTMLButtonElement) => act(async () => { el.focus(); el.click(); });
+  await render('/demo/crop.jpg', 'Move-in', true);
+  assert.equal(dialog().open, false);
+  assert.equal(document.querySelectorAll('img').length, 1, 'closed modal does not duplicate evidence images');
+  assert.match(opener().getAttribute('aria-label')!, /Enlarge Move-in evidence for Bedroom carpet/);
+  await click(opener());
+  assert.equal(dialog().open, true);
+  assert.equal(document.activeElement, button('Close photo'));
+  assert.match(dialog().textContent!, /Generated sample scene/);
+  assert.match(dialog().textContent!, /timing is unverified/);
+  assert.ok(document.getElementById(dialog().getAttribute('aria-labelledby')!));
+  assert.ok(document.getElementById(dialog().getAttribute('aria-describedby')!));
+  assert.equal(dialog().querySelector('img')!.getAttribute('src'), '/demo/crop.jpg');
+  await click(button('View actual size'));
+  assert.equal(button('Fit to window').getAttribute('aria-pressed'), 'true');
+  assert.match(dialog().querySelector('[role=region]')!.getAttribute('aria-label')!, /scroll to inspect/);
+  assert.equal(dialog().querySelector<HTMLElement>('[role=region]')!.tabIndex, 0);
+  await click(button('Fit to window'));
+  assert.equal(button('View actual size').getAttribute('aria-pressed'), 'false');
+  await click(button('Close photo'));
+  assert.equal(dialog().open, false);
+  assert.equal(document.activeElement, opener());
+  await click(opener());
+  await act(async () => dialog().close()); // Same close event emitted after native Escape.
+  assert.equal(document.activeElement, opener());
+  await render('data:image/jpeg;base64,QUFB', 'Before', false);
+  await click(opener());
+  assert.match(dialog().textContent!, /Local display copy. No upload or AI analysis/);
+  assert.doesNotMatch(dialog().textContent!, /Generated sample/);
+  assert.match(dialog().querySelector('h2')!.textContent!, /^Before/);
+  assert.match(dialog().querySelector('img')!.alt, /^Before evidence/);
+  assert.equal(dialog().querySelector('img')!.getAttribute('src'), 'data:image/jpeg;base64,QUFB');
+  await click(button('View actual size'));
+  await render('data:image/jpeg;base64,QkJC', 'After', false);
+  assert.equal(dialog().open, false, 'changing photos closes old modal');
+  await click(opener());
+  assert.equal(button('View actual size').getAttribute('aria-pressed'), 'false', 'reopening resets zoom');
+  await act(async () => dialog().dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  assert.equal(dialog().open, false, 'backdrop dismissal');
+  assert.equal(document.activeElement, opener());
+  assert.equal(dom.window.localStorage.length, 0);
+  assert.equal(dom.window.sessionStorage.length, 0);
+  await act(async () => root.unmount());
+  dom.window.close();
+  console.log('PASS case photo viewer: sample/local provenance, source order labels, complete source, modal state, zoom, focus restoration, dismissal, source change, no storage. Native modal APIs mocked.');
+}
+main().catch((error) => { console.error(error); process.exitCode = 1; });

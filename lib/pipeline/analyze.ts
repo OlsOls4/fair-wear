@@ -1,4 +1,5 @@
 import { qualifyAnalysisRequest } from "./context";
+import { SamResponseError } from "./sam-response";
 import { JudgeValidationError } from "./judgement";
 import { matchItems } from "./matching";
 import type { EvidencePack, Finding, Item, MatchedPair, MatchingResult } from "./types";
@@ -50,6 +51,10 @@ export function createAnalyzeHandler(deps: Dependencies) {
           : pack.replyDraft,
       } });
     } catch (error) {
+      if (error instanceof SamResponseError) return Response.json({
+        mock: deps.mock, error: "segmentation_unavailable",
+        message: "Segmentation did not return a complete, valid response. No findings or evidence pack were returned. Review the source evidence before retrying.",
+      }, { status: 502 });
       if (!(error instanceof JudgeValidationError)) throw error;
       return Response.json({
         mock: deps.mock, error: "judgement_unavailable",

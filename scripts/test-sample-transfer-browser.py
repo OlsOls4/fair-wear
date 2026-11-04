@@ -23,7 +23,7 @@ with sync_playwright() as p:
  expect(page.get_by_role('button',name='Bedroom',exact=True)).to_have_attribute('aria-pressed','true')
  expect(page.locator('.comparison-scene img').first).to_have_attribute('src','/demo/flat/bedroom-move-in.jpg')
  page.get_by_role('link',name='Try the sample review',exact=True).click()
- page.get_by_role('button',name='Inspect a change',exact=True).click()
+ page.get_by_role('button',name='Review sample claim 1: bedroom carpet',exact=True).click()
  expect(page.locator('[data-finding-id="bedroom-carpet-0-0"]')).to_be_focused()
  ok('homepage starts with bedroom and its first guided stop reaches the transferable carpet claim')
  choose('bedroom-carpet-0-0','Agree');choose('kitchen-oven-0-0','Dispute');choose('bathroom-bath-0-0','Not claimed')

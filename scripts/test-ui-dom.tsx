@@ -93,6 +93,13 @@ async function main() {
       assert.equal(host.querySelector(".comparison-scene img")!.getAttribute("src"), `/demo/flat/${path}-move-in.jpg`);
       assert.equal(host.querySelector(".comparison-after")!.getAttribute("src"), `/demo/flat/${path}-move-out.jpg`);
       assert.match(host.querySelector(".comparison-finding")!.textContent!, note);
+      if (room === "Bathroom") {
+        const detail = host.querySelector(".comparison-finding")!.textContent!;
+        assert.match(detail, /No matched crop pair or judge result was saved for the sealant/);
+        assert.match(detail, /historical evaluator labelled it ‘not segmented’/);
+        assert.match(detail, /without raw segmentation traces the exact failure stage cannot be verified/);
+        assert.doesNotMatch(detail, /sealant was not segmented/);
+      }
       assert.equal(host.querySelector<HTMLInputElement>('input[type="range"]')!.value, "50");
     });
   }

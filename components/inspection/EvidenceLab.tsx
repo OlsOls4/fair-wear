@@ -25,6 +25,7 @@ function Pair({ before, after, label }: { before?: string; after?: string; label
 
 export default function EvidenceLab() {
   const [selected, setSelected] = useState("bedroom/carpet");
+  const [selectionAnnouncement, setSelectionAnnouncement] = useState("");
   const [cropId, setCropId] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(0);
   const [reviews, setReviews] = useState<Record<string, Review>>({});
@@ -34,13 +35,18 @@ export default function EvidenceLab() {
   const focusSelectedCase = useRef(false);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => { setExportStatus(""); }, [threshold, reviews, integrity]);
-  useEffect(() => { if (focusSelectedCase.current) { focusSelectedCase.current = false; document.getElementById("inspect-case-title")?.focus(); } }, [selected]);
+  function revealSelectedCase() {
+    const heading = document.getElementById("inspect-case-title");
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ behavior: "instant", block: "start" });
+  }
+  useEffect(() => { if (focusSelectedCase.current) { focusSelectedCase.current = false; revealSelectedCase(); } }, [selected]);
   const analysis = analyzeEvidence(evidenceCases, threshold / 100);
   const row = analysis.rows.find((r) => r.id === selected)!;
   const original = baselineEvidence.rows.find((r) => r.id === selected)!;
   const crop = row.observations.find((o) => o.id === cropId) ?? row.observations.find((o) => o.verdict !== "no_change") ?? row.observations[0];
   const review = reviews[selected] ?? "unreviewed";
-  const chooseCase = (id: string, focus = false) => { focusSelectedCase.current = focus && id !== selected; setSelected(id); setCropId(null); setExportStatus(""); if (focus && id === selected) document.getElementById("inspect-case-title")?.focus(); };
+  const chooseCase = (id: string, focus = false) => { focusSelectedCase.current = focus && id !== selected; setSelected(id); setSelectionAnnouncement(`Selected ${pretty(id.replace("/", " · "))}. Evidence details updated.`); setCropId(null); setExportStatus(""); if (focus && id === selected) revealSelectedCase(); };
   const flaggedOriginal = baselineEvidence.rows.reduce((n, r) => n + r.flagged.length, 0);
   const flaggedNow = analysis.rows.reduce((n, r) => n + r.flagged.length, 0);
 
@@ -115,7 +121,8 @@ export default function EvidenceLab() {
     <div className="inspect-workspace">
       <aside className="inspect-inventory" aria-label="Choose an evidence case">
         <h2>All evidence</h2><p>Eight planted tests, plus unchanged-item checks.</p>
-        {[...new Set(evidenceCases.map((r) => r.room))].map((room) => <div key={room}><h3>{pretty(room)}</h3>{analysis.rows.filter((r) => r.room === room).map((item) => <button type="button" key={item.id} aria-pressed={item.id === selected} onClick={() => chooseCase(item.id)}><span>{pretty(item.item)}</span><small>{item.observations.length} {item.observations.length === 1 ? "observation" : "observations"}</small><i className={`inspect-dot inspect-dot-${item.outcome}`} aria-label={outcomeLabels[item.outcome]} /></button>)}</div>)}
+        <p className="inspect-selection-status" role="status" aria-atomic="true">{selectionAnnouncement}</p>
+        {[...new Set(evidenceCases.map((r) => r.room))].map((room) => <div key={room}><h3>{pretty(room)}</h3>{analysis.rows.filter((r) => r.room === room).map((item) => <button type="button" key={item.id} aria-pressed={item.id === selected} onClick={() => chooseCase(item.id, !!window.matchMedia?.("(max-width: 800px)").matches)}><span>{pretty(item.item)}</span><small>{item.observations.length} {item.observations.length === 1 ? "observation" : "observations"}</small><i className={`inspect-dot inspect-dot-${item.outcome}`} aria-label={outcomeLabels[item.outcome]} /></button>)}</div>)}
       </aside>
       <section className="inspect-detail" aria-label="Selected evidence case" data-testid="inspection-case">
         <div className="inspect-case-heading"><div><p className="inspect-eyebrow">{pretty(row.room)}</p><h2 id="inspect-case-title" tabIndex={-1}>{pretty(row.item)}</h2></div><span className={`inspect-outcome inspect-outcome-${row.outcome}`}>{outcomeLabels[row.outcome]}</span></div>
