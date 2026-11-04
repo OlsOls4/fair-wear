@@ -17,7 +17,7 @@ End-to-end video analysis is explicitly disabled even in local paid mode because
 
 ## Recorded evaluation: generated flat
 
-Muse Image generated four paired room scenes. The offline SAM 3.1 image-segmentation → matching → Muse Spark judgement run produced 20 saved crop-pair observations. Against eight planted changes, the recorded results are:
+Muse Image generated four paired room scenes. The offline SAM 3.1 image-segmentation → matching → Muse Spark judgement run produced 20 saved crop-pair observations, not 20 changes. These populate 12 room/item groups: 11 observations cover seven planted groups, and nine cover five groups without planted changes. The eighth planted group, bathroom sealant, has no saved observation but stays in the evaluation denominator. Multiple crops can describe one item, including no-change results. Against the eight planted item groups, the recorded results are:
 
 - **6/8** planted changes detected; **4/8** exact verdicts.
 - **3/4** planted damage cases found; **1/2** fair-wear decoys wrongly called damage.

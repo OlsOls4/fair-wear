@@ -33,6 +33,14 @@ async function main() {
   async function click(text: string) { const button = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes(text)); assert.ok(button, text); button.focus(); await act(async () => button.click()); }
   function detail() { return host.querySelector('[data-testid="inspection-case"]')!; }
   await act(async () => root.render(<EvidenceLab />));
+  test("visible count explanation separates observations from planted groups", () => {
+    const scope = host.querySelector('[data-testid="observation-scope"]')!;
+    assert.equal(scope.closest("details"), null);
+    assert.match(scope.textContent!, /20 findings.*12 room\/item groups, not 20 changes/);
+    assert.match(scope.textContent!, /seven have saved observations; bathroom sealant has none but stays in the denominator/);
+    assert.match(scope.textContent!, /Nine observations cover five groups without planted changes/);
+    assert.equal(scope.querySelectorAll("a").length, 2);
+  });
   test("initial load does not move focus or scroll", () => { assert.equal(document.activeElement, document.body); assert.equal(scrollCount, 0); });
   const inventoryButton = (label: string) => [...host.querySelectorAll<HTMLButtonElement>(".inspect-inventory button")].find((b) => b.querySelector("span")?.textContent === label)!;
   async function inventoryClick(label: string) { const b = inventoryButton(label); b.focus(); await act(async () => b.click()); return b; }

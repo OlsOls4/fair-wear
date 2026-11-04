@@ -4,6 +4,7 @@ import { analyzeEvidence, explainCase, outcomeLabels, pretty, type Observation }
 import { baselineEvidence, evidenceCases, evidenceManifest } from "@/lib/evidence/demo";
 import { validateSource, verifySourceBytes } from "@/lib/evidence/integrity";
 import { evidenceFindingHref } from "@/lib/evidence-navigation";
+import ObservationScope from "../ObservationScope";
 import { confidenceLabel } from "@/lib/findings";
 
 type Review = "hold" | "challenge" | "supported";
@@ -112,6 +113,8 @@ export default function EvidenceLab() {
       <div><strong>{baselineEvidence.exactVerdict}/{baselineEvidence.planted}</strong><span>exact planted labels found</span></div>
       <div><strong>{baselineEvidence.decoysWronglyDamage}/{baselineEvidence.decoys}</strong><span>fair-wear decoys called damage</span></div>
     </section>
+
+    <ObservationScope className="inspect-small" />
 
     <section className="inspect-spots" aria-labelledby="inspect-spots-heading">
       <h2 id="inspect-spots-heading">Start with the mismatches.</h2>

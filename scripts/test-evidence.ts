@@ -36,6 +36,17 @@ const main = async () => {
     assert.equal(compareDamagePolicy(invalid).alwaysDamage.retainedObservations, 0);
     assert.equal(compareDamagePolicy([]).alwaysDamage.observations, 0);
   });
+  test("visible observation scope matches saved crops and includes the empty planted group", () => {
+    const planted = evidenceCases.filter(row => row.expected !== null);
+    const unplanted = evidenceCases.filter(row => row.expected === null);
+    assert.equal(evidenceCases.filter(row => row.observations.length).length, 12);
+    assert.equal(planted.length, 8);
+    assert.equal(planted.filter(row => row.observations.length).length, 7);
+    assert.equal(planted.reduce((n, row) => n + row.observations.length, 0), 11);
+    assert.deepEqual(planted.filter(row => !row.observations.length).map(row => row.id), ["bathroom/sealant"]);
+    assert.equal(unplanted.length, 5);
+    assert.equal(unplanted.reduce((n, row) => n + row.observations.length, 0), 9);
+  });
   test("all eight planted rows reproduce detection and exactness", () => {
     for (const expected of published.rows) { const row = baselineEvidence.rows.find((r) => r.id === caseId(expected.room, expected.item))!; assert.equal(row.exact, expected.exact); assert.equal(!!row.flagged.length, expected.detected); }
   });

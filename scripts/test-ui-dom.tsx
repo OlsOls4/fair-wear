@@ -324,6 +324,13 @@ async function main() {
     const evaluation = host.querySelector('[aria-label="Published evaluation on generated imagery"]')!;
     assert.match(evaluation.textContent!, /Real pipeline evaluation: 4 generated rooms, 8 planted changes/);
     assert.match(evaluation.textContent!, /not accuracy estimates for real homes/);
+    const scope = evaluation.querySelector('[data-testid="observation-scope"]')!;
+    assert.equal(scope.closest("details"), null);
+    assert.match(scope.textContent!, /20 findings.*12 room\/item groups, not 20 changes/);
+    assert.match(scope.textContent!, /eight planted changes are eight item groups/);
+    assert.match(scope.textContent!, /bathroom sealant has none but stays in the denominator/);
+    assert.equal(scope.querySelector('a[href="/demo/flat-results.json"]')?.textContent, "Saved findings");
+    assert.equal(scope.querySelector('a[href="/evidence/planted.json"]')?.textContent, "Planted test intent");
     assert.match(host.querySelector("article .room")!.textContent!, /simulated imagery/);
   });
   ok("sample starts hidden and does not request personal files", () => { assert.equal((host.querySelector("#sample-results") as HTMLElement).hidden, true); assert.equal(host.querySelector('input[type="file"]'), null); });
