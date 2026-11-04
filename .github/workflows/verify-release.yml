@@ -1,0 +1,101 @@
+name: Verify Fair Wear commit
+
+on:
+  push:
+    branches: [verify-release-ci-20261104]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-commit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Offline checks and production build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MOCK: '1'
+      FAIRWEAR_ALLOW_PAID: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+      MODEL_API_KEY: ''
+      META_API_KEY: ''
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      # Full SHAs resolved from the official actions repositories.
+      - name: Check out exact application release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+          printf 'Application SHA: %s\nWorkflow SHA: %s\n' "$RELEASE_SHA" "$GITHUB_SHA"
+
+      - name: Set up Node without dependency caching
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.21.1'
+
+      - name: Install locked dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          npm ci --no-audit --no-fund
+
+      # Tests deliberately replace model transports. No real credentials are
+      # supplied, and no live model or deployment command is invoked.
+      - name: Check, build and recheck types in mock mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$MOCK" = 1
+          test "$FAIRWEAR_ALLOW_PAID" = 0
+          test -z "$MODEL_API_KEY"
+          test -z "$META_API_KEY"
+          npm run check
+          npm run build
+          npm run typecheck
+          # Next regenerates this tracked declaration file during a normal build.
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          assert.ok(fs.lstatSync('next-env.d.ts').isFile(), 'Expected a regular generated declaration');
+          const expected = [
+            '/// <reference types="next" />',
+            '/// <reference types="next/image-types/global" />',
+            '/// <reference path="./.next/types/routes.d.ts" />',
+            '',
+            '// NOTE: This file should not be edited',
+            '// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.',
+            '',
+          ].join('\n');
+          assert.equal(fs.readFileSync('next-env.d.ts', 'utf8'), expected);
+          NODE
+          git diff HEAD -- next-env.d.ts
+          git diff HEAD --exit-code -- . ":(exclude)next-env.d.ts"
+
+      - name: Record verification scope
+        if: always()
+        shell: bash
+        env:
+          VERIFY_STATUS: ${{ job.status }}
+        run: |
+          {
+            printf 'Application commit: `%s`\n\n' "$RELEASE_SHA"
+            printf 'Workflow commit: `%s`\n\n' "$GITHUB_SHA"
+            printf 'Job result: **%s**. Inspect individual steps and logs.\n\n' "$VERIFY_STATUS"
+            printf '%s\n' 'Scope: locked dependency install, offline check suite, production build, post-build typecheck. No browser, live-model or accuracy verification. No deployment, artifact upload or dependency cache.'
+          } >> "$GITHUB_STEP_SUMMARY"
