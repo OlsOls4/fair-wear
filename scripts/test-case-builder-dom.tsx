@@ -9,6 +9,9 @@ import { demoFindings } from "../lib/demo";
 const require = createRequire(import.meta.url);
 require.extensions[".css"] = (module: { exports: unknown }) => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_target, name) => String(name) }) }; };
 async function main() {
+  const caseImages = require("../lib/case-images");
+  const caseImagesModule = require.cache[require.resolve("../lib/case-images")]!;
+  caseImagesModule.exports = { ...caseImages, localCaseImage: async (file: File) => ({ src: `data:image/jpeg;base64,${file.name === "before.jpg" ? "QUFB" : "QkJC"}`, origin: "local", sha256: file.name }) };
   const { default: CaseBuilder } = await import("../components/CaseBuilder");
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:"http://localhost"});
   Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Event:dom.window.Event,React,IS_REACT_ACT_ENVIRONMENT:true});
@@ -66,9 +69,63 @@ async function main() {
   ok("cancelling destructive mode change preserves draft state",()=>assert.ok(text().includes("The evaluation disagrees")));
   confirm=true;await click("Start a private case");
   ok("confirmed private mode starts empty and drops sample model output",()=>{assert.match(text(),/manual evidence organiser/);assert.doesNotMatch(text(),/Recorded AI suggestion/);assert.equal(document.querySelectorAll("img").length,0);assert.equal(document.querySelector<HTMLInputElement>('[aria-label="Room"]')!.value,"");});
+  async function choosePhoto(label: string, name: string) {
+    const el = document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
+    Object.defineProperty(el, "files", { configurable: true, value: [new dom.window.File(["mock pixels"], name, { type: "image/jpeg" })] });
+    await act(async () => el.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+  }
+  async function removePhoto(label: string) {
+    const el = document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+    assert.ok(el); await act(async () => el.click());
+  }
+  await input('[aria-label="Item"]', "Private carpet");
+  await input('[aria-label="Proposed amount in pounds"]', "72");
+  await input('textarea', "Keep my note");
+  await toggleTracker(); await selectStatus("Move-in records", "provided");
+  await choosePhoto("Move-in photo", "before.jpg"); await choosePhoto("Move-out photo", "after.jpg");
+  ok("personal local images expose separately labelled removal controls", () => {
+    assert.ok(document.querySelector('[aria-label="Remove Move-in photo"]'));
+    assert.ok(document.querySelector('[aria-label="Remove Move-out photo"]'));
+    assert.equal(document.querySelectorAll("img").length, 2);
+  });
+  await removePhoto("Remove Move-in photo");
+  ok("removal clears only selected image and returns focus to its chooser", () => {
+    assert.equal(document.querySelectorAll("img").length, 1);
+    assert.match(document.querySelector("img")!.src, /QkJC$/);
+    assert.equal(document.querySelector('[aria-label="Remove Move-in photo"]'), null);
+    assert.equal(document.activeElement?.getAttribute("aria-label"), "Move-in photo");
+    assert.match(text(), /Move-in photo removed/);
+    assert.equal(document.querySelector<HTMLInputElement>('[aria-label="Item"]')!.value, "Private carpet");
+    assert.equal(document.querySelector<HTMLInputElement>('[aria-label="Proposed amount in pounds"]')!.value, "72");
+    assert.equal(document.querySelector<HTMLTextAreaElement>('textarea')!.value, "Keep my note");
+    assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Move-in records status"]')!.value, "provided");
+  });
+  await click("Export current evidence bundle");
+  const onePhotoHtml = await blob!.text();
+  ok("export excludes removed image and fingerprint but retains other photo", () => {
+    assert.doesNotMatch(onePhotoHtml, /QUFB|before\.jpg/);
+    assert.match(onePhotoHtml, /QkJC/); assert.match(onePhotoHtml, /Move-in photo not provided/);
+  });
+  await choosePhoto("Move-in photo", "before.jpg");
+  ok("removed photo can be selected again", () => assert.equal(document.querySelectorAll("img").length, 2));
+  await removePhoto("Remove Move-in photo"); await removePhoto("Remove Move-out photo");
+  await click("Preview response draft");
+  ok("removing both photos updates draft provenance", () => assert.match(document.querySelector("#case-current-reply")!.textContent!, /No photos are included/));
+  await click("Hide response draft");
+  await click("Return to example");
+  ok("sample images cannot be removed", () => assert.equal(document.querySelector('button[aria-label^="Remove "]'), null));
+  await click("Start a private case");
+  downloads = 0;
   async function selectPhotoContext(value:string){const el=document.querySelector<HTMLSelectElement>('[aria-label="Photo labels for this case"]')!;await act(async()=>{el.value=value;el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
   ok("private case defaults to tenancy photo labels",()=>assert.ok(document.querySelector('[aria-label="Move-in photo"]')));
   await selectPhotoContext("other");
+  await choosePhoto("Before photo", "before.jpg");
+  ok("removal label follows other photo context", () => assert.ok(document.querySelector('[aria-label="Remove Before photo"]')));
+  await removePhoto("Remove Before photo");
+  ok("other-context removal uses current labels in announcement and focus", () => {
+    assert.match(text(), /Before photo removed/);
+    assert.equal(document.activeElement?.getAttribute("aria-label"), "Before photo");
+  });
   ok("other comparison updates both upload labels with unverified timing",()=>{assert.ok(document.querySelector('[aria-label="Before photo"]'));assert.ok(document.querySelector('[aria-label="After photo"]'));assert.equal(document.querySelector('[aria-label="Move-in photo"]'),null);assert.match(text(),/timing is unverified/);});
   confirm=false;await click("Return to example");
   ok("cancelled mode change preserves photo context",()=>assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Photo labels for this case"]')!.value,"other"));
@@ -100,6 +157,7 @@ async function main() {
   await click("Start a private case");
   ok("new private case resets context and does not restore prior fields",()=>{assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Photo labels for this case"]')!.value,"tenancy");assert.ok(document.querySelector('[aria-label="Move-in photo"]'));assert.equal(dom.window.sessionStorage.length,0);});
   await act(async()=>root.unmount());
+  caseImagesModule.exports = caseImages;
   globalThis.setTimeout = realTimeout;
   console.log(`Passed ${checks} case-builder DOM checks. Native APIs are mocked.`);
 }
