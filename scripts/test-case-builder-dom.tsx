@@ -32,6 +32,16 @@ async function main() {
   async function response(value:string){const radio=document.querySelector<HTMLInputElement>(`input[type=radio][value=${value}]`)!;await act(async()=>radio.click());}
   function text(){return document.body.textContent!;}
   await act(async()=>root.render(<CaseBuilder sampleItems={sampleCaseItems(demoFindings)}/>));
+  ok("non-blocking guidance has a named heading and safe explicit external links",()=>{
+    const panel=document.querySelector('[aria-labelledby="renter-guidance-heading"]')!;
+    assert.ok(panel);assert.equal(panel.querySelector('h2')!.id,"renter-guidance-heading");
+    assert.match(panel.textContent!,/does not raise a dispute or extend a deadline/);
+    assert.equal(panel.querySelectorAll('input,button,select').length,0);
+    const links=Array.from(panel.querySelectorAll('a'));assert.equal(links.length,6);
+    const wales=links.find(link=>link.textContent?.startsWith("Wales:"));assert.equal(wales?.href,"https://www.gov.wales/deposits-guidance-tenants");
+    assert.ok(links.some(link=>link.textContent?.startsWith("England:")));assert.doesNotMatch(panel.textContent!,/England and Wales:/);
+    for(const link of links){assert.equal(link.target,"_blank");assert.equal(link.rel,"noopener noreferrer");assert.match(link.textContent!,/opens in a new tab/);assert.ok(link.href.startsWith("https://"));}
+  });
   ok("initial sample discloses fictional demand and original model disagreement",()=>{assert.match(text(),/£910 demand is invented/);assert.match(text(),/82% model confidence/);assert.match(text(),/The evaluation disagrees/);});
   async function toggleTracker(){await act(async()=>document.querySelector<HTMLInputElement>('.trackerToggle input')!.click());}
   async function selectStatus(label:string,value:string){const el=document.querySelector<HTMLSelectElement>(`select[aria-label="${label} status"]`)!;assert.ok(el);await act(async()=>{el.value=value;el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}

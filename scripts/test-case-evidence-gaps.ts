@@ -49,3 +49,15 @@ assert.equal(evidenceRows(invalid)[0].status, "unknown");
 assert.equal(evidenceRows(invalid)[2].status, "unknown");
 assert.equal(new JSDOM(buildCaseHtml(doc(invalid))).window.document.querySelectorAll("script").length, 0);
 console.log(`Evidence tracker checks passed: ${cases} status variants, legacy/mixed drafts, cost applicability, unknown defaults, omission, escaping and unchanged totals. No model calls.`);
+
+const guidanceExport = new JSDOM(buildCaseHtml(doc())).window.document;
+const guidancePanel = guidanceExport.querySelector('[aria-label="General preparation guidance"]')!;
+assert.ok(guidancePanel);
+assert.match(guidancePanel.textContent!, /does not raise a dispute or extend a deadline/);
+assert.match(guidancePanel.textContent!, /does not attach those documents automatically/);
+assert.equal(guidancePanel.querySelectorAll('a').length, 6);
+assert.equal(guidancePanel.querySelector('a[href="https://www.gov.wales/deposits-guidance-tenants"]')?.textContent, 'Wales: GOV.WALES deposit guidance (opens in a new tab)');
+assert.doesNotMatch(guidancePanel.textContent!, /England and Wales:/);
+for (const link of guidancePanel.querySelectorAll('a')) { assert.equal(link.target, "_blank"); assert.equal(link.rel, "noopener noreferrer"); }
+assert.doesNotMatch(caseReply(doc()), /Before you send your response|gov.uk/);
+console.log("ok guidance exports as separate preparation notes, never part of the reply");

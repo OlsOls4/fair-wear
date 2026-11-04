@@ -1,4 +1,5 @@
 "use client";
+import { RENTER_GUIDANCE } from "@/lib/renter-guidance";
 import ArrowIcon from "@/components/ArrowIcon";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCaseHtml, casePhotoLabels, casePhotoContextNote, caseReply, caseTotals, emptyCaseItem, moneyPence, pounds, replacementIllustration, RESPONSE_LABELS, sampleReviewDescription, type CaseDocument, type CaseItem, type CaseMode, type CaseResponse, type CostType, type PhotoContext } from "@/lib/case-builder";
@@ -146,6 +147,12 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
     <section className={styles.export} aria-label="Prepare current evidence bundle"><div><p className={styles.kicker}>03 / TAKE YOUR REVIEW WITH YOU</p><h2>Your choices, carried through.</h2><p>The bundle contains your current response, claim amounts and side-by-side photos. Original model suggestions remain separately labelled.</p><label>Bundle title<input value={title} maxLength={200} disabled={busy} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} /></label></div><div className={styles.exportActions}><button className={styles.primary} onClick={exportBundle} disabled={busy || !totals.included}>{busy ? "Preparing…" : "Export current evidence bundle"} <Arrow down /></button><button className={styles.secondary} aria-expanded={showReply} aria-controls="case-current-reply" onClick={() => setShowReply(!showReply)}>{showReply ? "Hide" : "Preview"} response draft</button><small>A self-contained HTML file. Open it and use Print → Save as PDF. Nothing is sent. Check photos and notes for personal information before sharing.</small>{!totals.included && <small>Add at least one included item to export.</small>}</div></section>
     <p role="status" className={styles.status}>{status}</p>
     {showReply && <section id="case-current-reply" className={styles.draft}><h2>Current draft, not sent</h2><pre>{draft}</pre></section>}
+    <section className={styles.guidance} aria-labelledby="renter-guidance-heading">
+      <h2 id="renter-guidance-heading">{RENTER_GUIDANCE.heading}</h2>
+      <p>{RENTER_GUIDANCE.scope}</p>
+      <ol>{RENTER_GUIDANCE.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+      <details><summary>Official guidance and evidence sources</summary><p>Links open in a new tab so your current case stays open.</p><ul>{RENTER_GUIDANCE.links.map(({ label, href }) => <li key={href}><a href={href} target="_blank" rel="noopener noreferrer">{label}<span className={styles.srOnly}> (opens in a new tab)</span></a></li>)}</ul></details>
+    </section>
     <footer className={styles.footer}><p>Fair Wear is a prototype for organising evidence. Photos alone do not establish age, cause or responsibility. This is not legal advice.</p><p>{mode === "sample" ? "Generated test images · Real recorded model outputs · Fictional proposed amounts" : "No uploads · No AI analysis of personal files · Keep your originals separately"}</p></footer>
   </main>;
 }
