@@ -1,5 +1,5 @@
 import type { EvidencePack, Finding, Item, MatchedPair, Verdict } from "./types";
-import { MOCK, museImageCard, museSparkJSON, museSparkText, sam31Track } from "./models";
+import { MOCK, museSparkJSON, museSparkText, sam31Track } from "./models";
 import { apportion, guidanceFor } from "./guidance";
 import { JUDGE_SCHEMA, validateJudge, type JudgeOut } from "./schema";
 import { JUDGE_SYSTEM, REPLY_SYSTEM } from "./prompts";
@@ -33,8 +33,8 @@ export async function extractItems(videoUrl: string, visit: Item["visit"], room:
 export { matchItems, changeStatus, normLabel } from "./matching";
 
 // Stage 4: judge each pair. Muse Spark classifies (schema-validated, one retry); guidance.ts apportions deterministically.
-export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveInYears = 0): Promise<Finding> {
-  const g = guidanceFor(pair.label);
+export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveInYears: number | null = null): Promise<Finding> {
+  const g = guidanceFor(pair.label, "damage");
   const urls = [pair.before?.bestFrame.url, pair.after?.bestFrame.url].filter(Boolean) as string[];
   const user = JSON.stringify({ item: pair.label, room: pair.room, tenancyYears, guidance: g.note, before: pair.before ? "BEFORE image attached first" : "no BEFORE crop", after: pair.after ? "AFTER image attached" : "no AFTER crop" });
   let out: JudgeOut | undefined;
@@ -50,16 +50,14 @@ export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveIn
   const verdict = out ? (structural && out.verdict !== structural && out.confidence < 0.7 ? structural : out.verdict) : structural ?? "no_change";
   return {
     pair, verdict, confidence: out?.confidence ?? 0, description: out?.description ?? (MOCK ? "Mock mode: no model judgement." : `Judge failed validation: ${lastErr}`),
-    simulated: MOCK, usefulLifeYears: g.usefulLifeYears, ageYears: ageAtMoveInYears, tenancyYears,
+    simulated: MOCK, usefulLifeYears: g.usefulLifeYears, ageYears: ageAtMoveInYears ?? undefined, tenancyYears, judgeJson: out,
     apportionmentPct: apportion(verdict, pair.label, tenancyYears, ageAtMoveInYears), guidanceRefs: g.refs,
   };
 }
 
-// Stage 5: cards + pack.
+// Stage 5: pack. Comparison cards and the PDF are rendered by scripts/build-pack.py (PIL + ReportLab, no model);
+// Muse Spark drafts the reply, disputing by default (see REPLY_SYSTEM).
 export async function buildPack(property: string, findings: Finding[]): Promise<EvidencePack> {
-  for (const f of findings.filter((x) => x.verdict !== "no_change")) {
-    f.cardUrl = await museImageCard(`Clean evidence card graphic titled "${f.pair.room}: ${f.pair.label}" with verdict "${f.verdict.replace("_", " ")}" and the note "${f.description.slice(0, 120)}". Minimal, legible, neutral colours.`);
-  }
   const replyDraft = await museSparkText(REPLY_SYSTEM, JSON.stringify(findings.map((f) => ({ room: f.pair.room, item: f.pair.label, verdict: f.verdict, description: f.description, apportionmentPct: f.apportionmentPct }))));
   return { property, generatedAt: new Date().toISOString(), findings, replyDraft };
 }

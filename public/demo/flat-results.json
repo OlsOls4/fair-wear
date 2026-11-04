@@ -17,7 +17,36 @@
    "guidanceNote": "Carpet is expected to flatten and fade in high-traffic areas.",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-carpet-0.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-carpet-0.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-carpet-0.jpg",
+   "before43": "/demo/flat/pairs/bedroom-carpet-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-carpet-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-carpet-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-carpet-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-carpet-0",
+     "conf": 0.976608157157898,
+     "box": [
+      231,
+      476,
+      1257,
+      719
+     ],
+     "maskPx": 182455
+    },
+    "after": {
+     "key": "bedroom-move_out-carpet-0",
+     "conf": 0.976608157157898,
+     "box": [
+      231,
+      477,
+      1256,
+      719
+     ],
+     "maskPx": 183834
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bedroom-wall-0-1",
@@ -32,7 +61,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-wall-1.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-wall-2.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-wall-2.jpg",
+   "before43": "/demo/flat/pairs/bedroom-wall-0-1-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-wall-0-1-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-wall-0-1-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-wall-0-1-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-wall-1",
+     "conf": 0.8947368264198303,
+     "box": [
+      147,
+      0,
+      294,
+      709
+     ],
+     "maskPx": 69156
+    },
+    "after": {
+     "key": "bedroom-move_out-wall-2",
+     "conf": 0.8827838897705078,
+     "box": [
+      147,
+      0,
+      291,
+      710
+     ],
+     "maskPx": 68511
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bedroom-wall-0-0",
@@ -47,7 +105,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-wall-0.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-wall-1.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-wall-1.jpg",
+   "before43": "/demo/flat/pairs/bedroom-wall-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-wall-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-wall-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-wall-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-wall-0",
+     "conf": 0.9298245906829834,
+     "box": [
+      952,
+      4,
+      1279,
+      596
+     ],
+     "maskPx": 157517
+    },
+    "after": {
+     "key": "bedroom-move_out-wall-1",
+     "conf": 0.921951174736023,
+     "box": [
+      948,
+      3,
+      1279,
+      596
+     ],
+     "maskPx": 159305
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bedroom-wall-0-2",
@@ -62,7 +149,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-wall-2.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-wall-0.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-wall-0.jpg",
+   "before43": "/demo/flat/pairs/bedroom-wall-0-2-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-wall-0-2-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-wall-0-2-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-wall-0-2-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-wall-2",
+     "conf": 0.9139785170555115,
+     "box": [
+      274,
+      99,
+      726,
+      509
+     ],
+     "maskPx": 84037
+    },
+    "after": {
+     "key": "bedroom-move_out-wall-0",
+     "conf": 0.9024390578269958,
+     "box": [
+      272,
+      98,
+      723,
+      508
+     ],
+     "maskPx": 82794
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bedroom-curtain-4-0",
@@ -76,7 +192,36 @@
    "guidanceNote": "",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-curtain-0.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-curtain-0.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-curtain-0.jpg",
+   "before43": "/demo/flat/pairs/bedroom-curtain-4-0-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-curtain-4-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-curtain-4-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-curtain-4-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-curtains-0",
+     "conf": 0.8947368264198303,
+     "box": [
+      452,
+      144,
+      513,
+      423
+     ],
+     "maskPx": 12407
+    },
+    "after": {
+     "key": "bedroom-move_out-curtains-0",
+     "conf": 0.8904109597206116,
+     "box": [
+      450,
+      143,
+      509,
+      423
+     ],
+     "maskPx": 12308
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bedroom-curtain-4-1",
@@ -90,7 +235,36 @@
    "guidanceNote": "",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-curtain-1.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-curtain-1.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-curtain-1.jpg",
+   "before43": "/demo/flat/pairs/bedroom-curtain-4-1-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-curtain-4-1-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-curtain-4-1-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-curtain-4-1-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-curtains-1",
+     "conf": 0.8865247964859009,
+     "box": [
+      676,
+      180,
+      714,
+      409
+     ],
+     "maskPx": 7041
+    },
+    "after": {
+     "key": "bedroom-move_out-curtains-1",
+     "conf": 0.8787879347801208,
+     "box": [
+      672,
+      180,
+      710,
+      409
+     ],
+     "maskPx": 7022
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bedroom-wardrobe-4-0",
@@ -105,7 +279,36 @@
    "guidanceNote": "Light scuffs are wear; broken doors are damage.",
    "simulated": true,
    "before": "/demo/flat/crops/bedroom-move_in-wardrobe-0.jpg",
-   "after": "/demo/flat/crops/bedroom-move_out-wardrobe-0.jpg"
+   "after": "/demo/flat/crops/bedroom-move_out-wardrobe-0.jpg",
+   "before43": "/demo/flat/pairs/bedroom-wardrobe-4-0-in.jpg",
+   "after43": "/demo/flat/pairs/bedroom-wardrobe-4-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bedroom-wardrobe-4-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bedroom-wardrobe-4-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bedroom-move_in-wardrobe-0",
+     "conf": 0.8012422323226929,
+     "box": [
+      726,
+      97,
+      968,
+      536
+     ],
+     "maskPx": 87069
+    },
+    "after": {
+     "key": "bedroom-move_out-wardrobe-0",
+     "conf": 0.7815700173377991,
+     "box": [
+      721,
+      97,
+      964,
+      536
+     ],
+     "maskPx": 87398
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-carpet-0-1",
@@ -120,7 +323,36 @@
    "guidanceNote": "Carpet is expected to flatten and fade in high-traffic areas.",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-carpet-1.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-carpet-1.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-carpet-1.jpg",
+   "before43": "/demo/flat/pairs/living-room-carpet-0-1-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-carpet-0-1-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-carpet-0-1-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-carpet-0-1-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-carpet-1",
+     "conf": 0.9726027250289917,
+     "box": [
+      169,
+      435,
+      1197,
+      719
+     ],
+     "maskPx": 192637
+    },
+    "after": {
+     "key": "living-room-move_out-carpet-1",
+     "conf": 0.9649122953414917,
+     "box": [
+      169,
+      435,
+      1198,
+      719
+     ],
+     "maskPx": 176119
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-curtain-0-1",
@@ -134,7 +366,36 @@
    "guidanceNote": "",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-curtain-1.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-curtain-1.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-curtain-1.jpg",
+   "before43": "/demo/flat/pairs/living-room-curtain-0-1-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-curtain-0-1-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-curtain-0-1-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-curtain-0-1-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-curtains-1",
+     "conf": 0.921951174736023,
+     "box": [
+      459,
+      109,
+      526,
+      389
+     ],
+     "maskPx": 10887
+    },
+    "after": {
+     "key": "living-room-move_out-curtains-1",
+     "conf": 0.9259259104728699,
+     "box": [
+      459,
+      108,
+      526,
+      389
+     ],
+     "maskPx": 11134
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-wall-0-2",
@@ -149,7 +410,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-wall-2.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-wall-3.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-wall-3.jpg",
+   "before43": "/demo/flat/pairs/living-room-wall-0-2-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-wall-0-2-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-wall-0-2-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-wall-0-2-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-wall-2",
+     "conf": 0.7730495929718018,
+     "box": [
+      218,
+      0,
+      412,
+      564
+     ],
+     "maskPx": 76498
+    },
+    "after": {
+     "key": "living-room-move_out-wall-3",
+     "conf": 0.7815700173377991,
+     "box": [
+      218,
+      0,
+      413,
+      565
+     ],
+     "maskPx": 76447
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-curtain-0-0",
@@ -163,7 +453,36 @@
    "guidanceNote": "",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-curtain-0.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-curtain-0.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-curtain-0.jpg",
+   "before43": "/demo/flat/pairs/living-room-curtain-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-curtain-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-curtain-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-curtain-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-curtains-0",
+     "conf": 0.9179486632347107,
+     "box": [
+      732,
+      117,
+      796,
+      390
+     ],
+     "maskPx": 10434
+    },
+    "after": {
+     "key": "living-room-move_out-curtains-0",
+     "conf": 0.921951174736023,
+     "box": [
+      731,
+      116,
+      796,
+      390
+     ],
+     "maskPx": 10532
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-carpet-4-0",
@@ -178,7 +497,36 @@
    "guidanceNote": "Carpet is expected to flatten and fade in high-traffic areas.",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-carpet-0.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-carpet-0.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-carpet-0.jpg",
+   "before43": "/demo/flat/pairs/living-room-carpet-4-0-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-carpet-4-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-carpet-4-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-carpet-4-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-carpet-0",
+     "conf": 0.9452055096626282,
+     "box": [
+      109,
+      501,
+      237,
+      719
+     ],
+     "maskPx": 17584
+    },
+    "after": {
+     "key": "living-room-move_out-carpet-0",
+     "conf": 0.941605806350708,
+     "box": [
+      111,
+      501,
+      238,
+      719
+     ],
+     "maskPx": 17599
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-wall-4-0",
@@ -193,7 +541,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-wall-0.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-wall-0.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-wall-0.jpg",
+   "before43": "/demo/flat/pairs/living-room-wall-4-0-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-wall-4-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-wall-4-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-wall-4-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-wall-0",
+     "conf": 0.8987342119216919,
+     "box": [
+      847,
+      0,
+      1279,
+      659
+     ],
+     "maskPx": 219730
+    },
+    "after": {
+     "key": "living-room-move_out-wall-0",
+     "conf": 0.8904109597206116,
+     "box": [
+      847,
+      0,
+      1279,
+      657
+     ],
+     "maskPx": 219956
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-wall-4-3",
@@ -208,7 +585,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-wall-3.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-wall-4.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-wall-4.jpg",
+   "before43": "/demo/flat/pairs/living-room-wall-4-3-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-wall-4-3-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-wall-4-3-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-wall-4-3-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-wall-3",
+     "conf": 0.8439024686813354,
+     "box": [
+      46,
+      70,
+      209,
+      522
+     ],
+     "maskPx": 51289
+    },
+    "after": {
+     "key": "living-room-move_out-wall-4",
+     "conf": 0.8476190567016602,
+     "box": [
+      47,
+      67,
+      211,
+      522
+     ],
+     "maskPx": 51905
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "living-room-wall-4-1",
@@ -223,7 +629,36 @@
    "guidanceNote": "Paint lasts about 4 years; small nail holes and light marks are wear.",
    "simulated": true,
    "before": "/demo/flat/crops/living-room-move_in-wall-1.jpg",
-   "after": "/demo/flat/crops/living-room-move_out-wall-1.jpg"
+   "after": "/demo/flat/crops/living-room-move_out-wall-1.jpg",
+   "before43": "/demo/flat/pairs/living-room-wall-4-1-in.jpg",
+   "after43": "/demo/flat/pairs/living-room-wall-4-1-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/living-room-wall-4-1-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/living-room-wall-4-1-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "living-room-move_in-wall-1",
+     "conf": 0.6717948913574219,
+     "box": [
+      397,
+      66,
+      859,
+      442
+     ],
+     "maskPx": 53426
+    },
+    "after": {
+     "key": "living-room-move_out-wall-1",
+     "conf": 0.5816993117332458,
+     "box": [
+      399,
+      65,
+      848,
+      441
+     ],
+     "maskPx": 39283
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "kitchen-sink-0-0",
@@ -238,7 +673,36 @@
    "guidanceNote": "Limescale is cleaning; chips are damage.",
    "simulated": true,
    "before": "/demo/flat/crops/kitchen-move_in-sink-0.jpg",
-   "after": "/demo/flat/crops/kitchen-move_out-sink-0.jpg"
+   "after": "/demo/flat/crops/kitchen-move_out-sink-0.jpg",
+   "before43": "/demo/flat/pairs/kitchen-sink-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/kitchen-sink-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/kitchen-sink-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/kitchen-sink-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "kitchen-move_in-sink-0",
+     "conf": 0.8241757750511169,
+     "box": [
+      427,
+      396,
+      546,
+      426
+     ],
+     "maskPx": 2640
+    },
+    "after": {
+     "key": "kitchen-move_out-sink-0",
+     "conf": 0.8241757750511169,
+     "box": [
+      426,
+      396,
+      546,
+      426
+     ],
+     "maskPx": 2612
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "kitchen-oven-0-0",
@@ -253,7 +717,36 @@
    "guidanceNote": "Grease is a cleaning matter.",
    "simulated": true,
    "before": "/demo/flat/crops/kitchen-move_in-oven-0.jpg",
-   "after": "/demo/flat/crops/kitchen-move_out-oven-0.jpg"
+   "after": "/demo/flat/crops/kitchen-move_out-oven-0.jpg",
+   "before43": "/demo/flat/pairs/kitchen-oven-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/kitchen-oven-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/kitchen-oven-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/kitchen-oven-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "kitchen-move_in-oven-0",
+     "conf": 0.9139785170555115,
+     "box": [
+      762,
+      442,
+      927,
+      695
+     ],
+     "maskPx": 27576
+    },
+    "after": {
+     "key": "kitchen-move_out-oven-0",
+     "conf": 0.9259259104728699,
+     "box": [
+      761,
+      441,
+      926,
+      694
+     ],
+     "maskPx": 27440
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "kitchen-worktop-0-0",
@@ -268,7 +761,36 @@
    "guidanceNote": "Light knife marks are wear; burns and deep cuts are damage.",
    "simulated": true,
    "before": "/demo/flat/crops/kitchen-move_in-worktop-0.jpg",
-   "after": "/demo/flat/crops/kitchen-move_out-worktop-1.jpg"
+   "after": "/demo/flat/crops/kitchen-move_out-worktop-1.jpg",
+   "before43": "/demo/flat/pairs/kitchen-worktop-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/kitchen-worktop-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/kitchen-worktop-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/kitchen-worktop-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "kitchen-move_in-worktop-0",
+     "conf": 0.8476190567016602,
+     "box": [
+      89,
+      371,
+      1092,
+      556
+     ],
+     "maskPx": 35208
+    },
+    "after": {
+     "key": "kitchen-move_out-worktop-1",
+     "conf": 0.8128654956817627,
+     "box": [
+      89,
+      379,
+      693,
+      489
+     ],
+     "maskPx": 16042
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bathroom-bath-0-0",
@@ -283,7 +805,36 @@
    "guidanceNote": "Surface wear is expected; chips are damage.",
    "simulated": true,
    "before": "/demo/flat/crops/bathroom-move_in-bath-0.jpg",
-   "after": "/demo/flat/crops/bathroom-move_out-bath-0.jpg"
+   "after": "/demo/flat/crops/bathroom-move_out-bath-0.jpg",
+   "before43": "/demo/flat/pairs/bathroom-bath-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/bathroom-bath-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bathroom-bath-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bathroom-bath-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bathroom-move_in-bath-0",
+     "conf": 0.8672199249267578,
+     "box": [
+      161,
+      419,
+      570,
+      719
+     ],
+     "maskPx": 89453
+    },
+    "after": {
+     "key": "bathroom-move_out-bath-0",
+     "conf": 0.8865247964859009,
+     "box": [
+      159,
+      418,
+      562,
+      719
+     ],
+     "maskPx": 91159
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   },
   {
    "id": "bathroom-toilet-0-0",
@@ -298,7 +849,36 @@
    "guidanceNote": "Cleaning matter unless cracked.",
    "simulated": true,
    "before": "/demo/flat/crops/bathroom-move_in-toilet-0.jpg",
-   "after": "/demo/flat/crops/bathroom-move_out-toilet-0.jpg"
+   "after": "/demo/flat/crops/bathroom-move_out-toilet-0.jpg",
+   "before43": "/demo/flat/pairs/bathroom-toilet-0-0-in.jpg",
+   "after43": "/demo/flat/pairs/bathroom-toilet-0-0-out.jpg",
+   "beforeSeg": "/demo/flat/pairs/bathroom-toilet-0-0-in-seg.jpg",
+   "afterSeg": "/demo/flat/pairs/bathroom-toilet-0-0-out-seg.jpg",
+   "sam": {
+    "before": {
+     "key": "bathroom-move_in-toilet-0",
+     "conf": 0.9569892287254333,
+     "box": [
+      627,
+      362,
+      724,
+      582
+     ],
+     "maskPx": 15777
+    },
+    "after": {
+     "key": "bathroom-move_out-toilet-0",
+     "conf": 0.9569892287254333,
+     "box": [
+      620,
+      361,
+      718,
+      581
+     ],
+     "maskPx": 15903
+    },
+    "sameObjectsAsJudgedRun": true
+   }
   }
  ]
 }

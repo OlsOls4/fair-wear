@@ -16,6 +16,6 @@ export interface Finding {
   apportionmentPct?: number;           // share a tenant could fairly bear, 0-100
   guidanceRefs: string[];              // e.g. "TDS: fair wear and tear guide"
   simulated?: boolean;                 // true when produced in MOCK mode or from planted/generated demo data
-  cardUrl?: string;                    // Muse Image comparison card
+  judgeJson?: unknown;                 // Muse Spark output after schema validation (kept for the "Why?" panel)
 }
 export interface EvidencePack { property: string; generatedAt: string; findings: Finding[]; replyDraft: string }

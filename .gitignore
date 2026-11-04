@@ -5,3 +5,4 @@ node_modules
 *.mp4
 data/
 tsconfig.tsbuildinfo
+!public/demo/video/*.mp4

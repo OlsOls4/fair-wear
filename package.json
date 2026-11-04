@@ -14,6 +14,7 @@
     "react-dom": "19.1.1"
   },
   "devDependencies": {
+    "@meta-sam/parser": "^0.1.0",
     "@types/node": "22.18.8",
     "@types/react": "19.1.15",
     "tsx": "^4.23.15",
