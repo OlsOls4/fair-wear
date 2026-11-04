@@ -18,3 +18,5 @@
 
 /* Leave room around the editor when explicit mobile navigation reveals it. */
 .editor{scroll-margin-top:16px}.itemHeading h2:focus-visible{outline:3px solid #497343;outline-offset:4px}
+
+.removeDeduction{border-top:1px solid var(--border);padding-top:18px;margin-top:24px}.removeDeduction p{font-size:11px;line-height:1.6;color:#596660;max-width:580px}

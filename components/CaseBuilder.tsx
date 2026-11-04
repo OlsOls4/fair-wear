@@ -26,9 +26,13 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   const editorRef = useRef<HTMLElement>(null);
   const editorHeadingRef = useRef<HTMLHeadingElement>(null);
   const [editorNavigation, setEditorNavigation] = useState(0);
-  // Only explicit list navigation moves focus, never initial load or field edits.
+  const removedItemFocus = useRef(false);
+  // Explicit list navigation or removal moves focus, never initial load or field edits.
   useEffect(() => {
-    if (!editorNavigation || !window.matchMedia?.("(max-width: 740px)").matches) return;
+    if (!editorNavigation) return;
+    const afterRemoval = removedItemFocus.current;
+    removedItemFocus.current = false;
+    if (!afterRemoval && !window.matchMedia?.("(max-width: 740px)").matches) return;
     editorHeadingRef.current?.focus({ preventScroll: true });
     editorRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
   }, [editorNavigation]);
@@ -86,6 +90,19 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
     const next = emptyCaseItem(`claim-${nextId.current++}`);
     setItems((items) => [...items, next]); selectItem(next.id); setDirty(true);
   }
+  function removeSelectedItem() {
+    if (mode !== "personal" || busy) return;
+    const label = selected.item.trim() || "this deduction";
+    if (!window.confirm(`Remove ${label} from this case? Its notes, photos and evidence choices will be cleared from this page. Existing downloads will not change. To keep it for later, cancel and choose “Leave out of response” instead.`)) return;
+    const index = items.findIndex((item) => item.id === selected.id);
+    const remaining = items.filter((item) => item.id !== selected.id);
+    const next = remaining.length ? remaining : [emptyCaseItem(`claim-${nextId.current++}`)];
+    setItems(next);
+    removedItemFocus.current = true;
+    selectItem(next[Math.min(index, next.length - 1)].id);
+    setDirty(true);
+    setStatus(remaining.length ? "Deduction removed. Your other deductions are unchanged. Existing downloads have not changed." : "Deduction removed. A new blank deduction is ready. Existing downloads have not changed.");
+  }
   async function choosePhoto(event: React.ChangeEvent<HTMLInputElement>, visit: "before" | "after") {
     const file = event.target.files?.[0], id = selected.id; event.target.value = "";
     if (!file) return;
@@ -141,6 +158,7 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
           </fieldset>}
         </section>
         <details className={styles.assumptions}><summary>Explore cost assumptions <span>Optional, never inferred by AI</span></summary><fieldset disabled={busy} className={styles.fields}><legend className={styles.srOnly}>Cost assumptions</legend><label>Type of proposed cost<select value={selected.costType} aria-label="Type of proposed cost" onChange={(e) => patch(selected.id, { costType: e.target.value as CostType })}><option value="unknown">Not specified</option><option value="replacement">Replacement</option><option value="repair">Repair</option><option value="cleaning">Cleaning</option></select></label>{selected.costType === "replacement" ? <><p>Try a simple remaining-value calculation with your own assumptions. No age, lifespan or quality is filled in from an item label.</p><div className={styles.fieldRow}><label>Replacement cost (£)<input aria-label="Replacement cost in pounds" inputMode="decimal" value={selected.replacementCost} maxLength={15} onChange={(e) => patch(selected.id, { replacementCost: e.target.value })} placeholder="Unknown" /></label><label>Age at move-in (years)<input aria-label="Age at move-in in years" inputMode="decimal" value={selected.ageAtMoveIn} maxLength={8} onChange={(e) => patch(selected.id, { ageAtMoveIn: e.target.value })} placeholder="Unknown" /></label></div><div className={styles.fieldRow}><label>Tenancy length (years)<input aria-label="Tenancy length in years" inputMode="decimal" value={selected.tenancyYears} maxLength={8} onChange={(e) => patch(selected.id, { tenancyYears: e.target.value })} placeholder="Unknown" /></label><label>Expected useful life (years)<input aria-label="Expected useful life in years" inputMode="decimal" value={selected.usefulLife} maxLength={8} onChange={(e) => patch(selected.id, { usefulLife: e.target.value })} placeholder="Unknown" /></label></div><label>Quality and starting-condition basis<input value={selected.qualityBasis} aria-label="Quality and starting-condition basis" maxLength={500} onChange={(e) => patch(selected.id, { qualityBasis: e.target.value })} placeholder="e.g. invoice, inventory or an explicitly unverified assumption" /></label><div className={styles.calculation} role="status" data-testid="replacement-illustration">{illustration.status === "illustrative" ? <><span>Remaining-value illustration</span><strong>{pounds(illustration.remainingPence)}</strong><p>{pounds(illustration.costPence)} × max(0, 1 − ({illustration.age} + {illustration.tenancy}) ÷ {illustration.life})</p><small>Unverified assumptions, not a suggested settlement or tenant liability. This does not change your claimed amount, response or totals.</small></> : <p>No estimate yet. {illustration.status === "needs_inputs" ? `Supply: ${illustration.missing.join(", ")}.` : ""}</p>}</div></> : <p>No replacement-life calculation applies to this selection. Evidence of cost, cause and responsibility still needs review.</p>}</fieldset></details>
+        {mode === "personal" && <div className={styles.removeDeduction}><button type="button" className={styles.secondary} disabled={busy} onClick={removeSelectedItem}>Remove this deduction</button><p>Clears this deduction’s notes, photos and evidence choices from the case. To keep them but exclude the deduction from exports, choose “Leave out of response” above.</p></div>}
       </section>
     </div>
     <section className={styles.export} aria-label="Prepare current evidence bundle"><div><p className={styles.kicker}>03 / TAKE YOUR REVIEW WITH YOU</p><h2>Your choices, carried through.</h2><p>The bundle contains your current response, claim amounts and side-by-side photos. Original model suggestions remain separately labelled.</p><label>Bundle title<input value={title} maxLength={200} disabled={busy} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} /></label></div><div className={styles.exportActions}><button className={styles.primary} onClick={exportBundle} disabled={busy || !totals.included}>{busy ? "Preparing…" : "Export current evidence bundle"} <Arrow down /></button><button className={styles.secondary} aria-expanded={showReply} aria-controls="case-current-reply" onClick={() => setShowReply(!showReply)}>{showReply ? "Hide" : "Preview"} response draft</button><small>A self-contained HTML file. Open it and use Print → Save as PDF. Nothing is sent. Check photos and notes for personal information before sharing.</small>{!totals.included && <small>Add at least one included item to export.</small>}</div></section>
