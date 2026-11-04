@@ -21,24 +21,9 @@ async function post(path: string, body: unknown, accept = "application/json") {
 }
 
 // ---------- SAM 3.1 ----------
-export interface SamRecord { frame: number; id: number; box: [number, number, number, number]; w: number; h: number; conf?: number; mask: string }
-
-// Parse the special-token wire format: "<Nf>id<|box;...|><|mask;...|>,id<|box..|><|mask..|>"
-export function parseSamLines(text: string): SamRecord[] {
-  const out: SamRecord[] = [];
-  for (const line of text.split("\n")) {
-    const fm = line.match(/^<(\d+)f>/);
-    if (!fm) continue;
-    const frame = +fm[1];
-    const re = /(\d+)<\|box;([^|]*)\|><\|mask;([^|]*(?:\|(?!>)[^|]*)*)\|>/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(line.slice(fm[0].length)))) {
-      const kv = Object.fromEntries(m[2].split(";").map((p) => p.split("=") as [string, string]));
-      out.push({ frame, id: +m[1], box: [+kv.x1, +kv.y1, +kv.x2, +kv.y2], w: +kv.w, h: +kv.h, conf: kv.c ? +kv.c : undefined, mask: m[3] });
-    }
-  }
-  return out;
-}
+export { parseSamLines, parseSamText } from "./sam-geometry";
+import { parseSamText, type SamRecord } from "./sam-geometry";
+export type { SamRecord } from "./sam-geometry";
 
 async function samCall(prompt: string, media: { image_url?: string; video_url?: string; file_id?: string }, kind: "image" | "video", frames = 1) {
   if (kind === "video" && (!Number.isSafeInteger(frames) || frames < 1)) throw new Error("SAM video requires a positive integer frame bound");
@@ -52,17 +37,19 @@ async function samCall(prompt: string, media: { image_url?: string; video_url?: 
     metadata: { include_confidence: "true", mask_encoding: "one_bit" },
   }, "text/event-stream"));
   settle();
-  return parseSamLines(text);
+  const parsed = parseSamText(text, kind);
+  for (const warning of parsed.warnings) console.warn(`SAM protocol warning: ${warning.code} (line ${warning.line})`);
+  return parsed.records;
 }
 
 export async function sam31Segment(imageUrl: string, concept: string): Promise<SamRecord[]> {
-  if (MOCK) return [{ frame: 0, id: 0, box: [10, 10, 100, 100], w: 640, h: 360, conf: 0.9, mask: "" }];
+  if (MOCK) return [{ frame: 0, id: "0", box: [10, 10, 100, 100], w: 640, h: 360, conf: 0.9, mask: "" }];
   return samCall(concept, { image_url: imageUrl }, "image");
 }
 
 // frames: upper bound on frames SAM will process (duration x fps, from ffprobe) for the budget reservation.
 export async function sam31Track(video: { video_url?: string; file_id?: string }, concept: string, frames = 900): Promise<SamRecord[]> {
-  if (MOCK) return [{ frame: 0, id: 0, box: [10, 10, 100, 100], w: 640, h: 360, conf: 0.9, mask: "" }];
+  if (MOCK) return [{ frame: 0, id: "0", box: [10, 10, 100, 100], w: 640, h: 360, conf: 0.9, mask: "" }];
   return samCall(concept, video, "video", frames);
 }
 

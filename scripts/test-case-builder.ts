@@ -33,6 +33,23 @@ test("private drafts describe only included photos and never invent attachments"
   }
 });
 
+test("supporting references are escaped, unverified and export-only", () => {
+  const references = '2025-03-02: inspection report, page 4\nUndated invoice <script>alert("x")</script>';
+  const item = { ...emptyCaseItem("records"), supportingRecords: references };
+  const doc: CaseDocument = { mode: "personal", title: "Records", items: [item] };
+  const html = buildCaseHtml(doc);
+  const parsed = new JSDOM(html).window.document;
+  assert.match(html, /Supporting record references/);
+  assert.match(html, /not independently verified/);
+  assert.match(html, /Referenced original files are not attached/);
+  assert.ok(parsed.body.textContent!.includes(references));
+  assert.equal(parsed.querySelectorAll("script").length, 0);
+  assert.doesNotMatch(caseReply(doc), /inspection report|Undated invoice/);
+  assert.deepEqual(caseTotals([item]), caseTotals([emptyCaseItem("records")]));
+  assert.doesNotMatch(buildCaseHtml({ ...doc, items: [{ ...item, response: "omit" }] }), /Supporting record references|inspection report|Undated invoice/);
+  assert.doesNotMatch(buildCaseHtml({ ...doc, items: [{ ...item, supportingRecords: "  " }] }), /Supporting record references/);
+});
+
 test("money is exact at pennies and blank is unknown", () => {
   assert.equal(moneyPence("0"), 0); assert.equal(moneyPence(" 480.20 "), 48020); assert.equal(moneyPence("0.01"), 1); assert.equal(moneyPence("1000000"), 100000000);
   for (const bad of ["", " ", "-1", "0.001", "1e2", "NaN", "Infinity", "1,000", "£1", "1000000.01", "<img>"]) assert.equal(moneyPence(bad), null, bad);

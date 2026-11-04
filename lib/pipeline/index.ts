@@ -17,7 +17,7 @@ export async function extractItems(videoUrl: string, visit: Item["visit"], room:
   for (const batch of batches) {
     const results = await Promise.all(batch.map((c) => sam31Track({ video_url: videoUrl }, c, frames).then((r) => [c, r] as const)));
     for (const [label, recs] of results) {
-      const byId = new Map<number, typeof recs>();
+      const byId = new Map<string, typeof recs>();
       recs.forEach((r) => byId.set(r.id, [...(byId.get(r.id) ?? []), r]));
       for (const [oid, rs] of byId) {
         // best frame = largest confident box

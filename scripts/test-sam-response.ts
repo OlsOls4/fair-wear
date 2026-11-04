@@ -14,7 +14,7 @@ let checks = 0;
 function check(label: string, run: () => void) { run(); checks++; console.log(`ok ${label}`); }
 check("a complete valid stream preserves sparse IDs and geometry", () => {
   const result = parseSamLines(readSamOutput(delta(line) + finish(line)));
-  assert.equal(result.length, 1); assert.equal(result[0].id, 10); assert.deepEqual(result[0].box, [10, 20, 14, 24]);
+  assert.equal(result.length, 1); assert.equal(result[0].id, "10"); assert.deepEqual(result[0].box, [10, 20, 15, 25]);
 });
 check("deltas may split anywhere, including inside tokens", () => {
   for (let split = 0; split <= line.length; split++) assert.equal(readSamOutput(delta(line.slice(0, split)) + delta(line.slice(split)) + finish(line)), line);

@@ -66,6 +66,18 @@ async function main() {
   await toggleTracker();await toggleTracker();
   ok("turning tracker off then on clears its old selections",()=>assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Move-in records status"]')!.value,"unknown"));
   await toggleTracker();
+  await input('[aria-label="Supporting record references"]', "2025-03-02: carpet inspection, page 4");
+  ok("record references have a clear label, bounded input and export-only disclosure", () => {
+    const field = document.querySelector<HTMLTextAreaElement>('[aria-label="Supporting record references"]')!;
+    assert.equal(field.maxLength, 5000);
+    assert.ok(field.closest("label")!.textContent!.startsWith(field.getAttribute("aria-label")!));
+    assert.match(document.getElementById(field.getAttribute("aria-describedby")!)!.textContent!, /unverified references, not attached files/);
+    assert.equal(document.querySelector<HTMLInputElement>('.trackerToggle input')!.checked, false);
+  });
+  await click("oven");
+  ok("record references start empty on another deduction", () => assert.equal(document.querySelector<HTMLTextAreaElement>('[aria-label="Supporting record references"]')!.value, ""));
+  await click("carpet");
+  ok("record references survive navigation independently of tracker", () => assert.equal(document.querySelector<HTMLTextAreaElement>('[aria-label="Supporting record references"]')!.value, "2025-03-02: carpet inspection, page 4"));
   await input("textarea", "CORRECTED REVIEW NOTE");
   await input('[aria-label="Replacement cost in pounds"]', "600");
   await input('[aria-label="Age at move-in in years"]', "3");
@@ -81,6 +93,7 @@ async function main() {
   ok("responses survive claim navigation and omission updates totals",()=>{assert.ok(document.querySelector<HTMLInputElement>('input[value=discuss]')!.checked);assert.match(document.querySelector('[data-testid="case-summary"]')!.textContent!,/Questioned£350.00For discussion£480.00/);});
   await click("Preview response draft");
   ok("current draft reflects human choices and omits excluded claim",()=>{const draft=document.querySelector("#case-current-reply")!.textContent!;assert.match(draft,/willing to discuss/);assert.match(draft,/CORRECTED REVIEW NOTE/);assert.doesNotMatch(draft,/Clean oven/);assert.match(draft,/No amount is agreed/);});
+  ok("record references never enter the third-party response draft", () => assert.doesNotMatch(document.querySelector("#case-current-reply")!.textContent!, /carpet inspection, page 4/));
   const realFetch = globalThis.fetch; globalThis.fetch = async () => { throw new Error("SAMPLE LOAD FAILURE"); };
   await click("Export current evidence bundle");
   ok("failed sample download retains the case and re-enables export",()=>{assert.match(text(),/SAMPLE LOAD FAILURE/);assert.equal(downloads,0);assert.equal(button("Export current evidence bundle").disabled,false);});
@@ -98,6 +111,9 @@ async function main() {
     const el = document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
     assert.ok(el); await act(async () => el.click());
   }
+  await input('[aria-label="Room"]', "Bedroom");
+  ok("new private case does not retain sample record references", () => assert.equal(document.querySelector<HTMLTextAreaElement>('[aria-label="Supporting record references"]')!.value, ""));
+  await input('[aria-label="Supporting record references"]', "PRIVATE RECORD: dated inspection report");
   await input('[aria-label="Item"]', "Private carpet");
   await input('[aria-label="Proposed amount in pounds"]', "72");
   await input('textarea', "Keep my note");
@@ -123,6 +139,7 @@ async function main() {
   await click("Export current evidence bundle");
   const onePhotoHtml = await blob!.text();
   ok("export excludes removed image and fingerprint but retains other photo", () => {
+    assert.match(onePhotoHtml, /PRIVATE RECORD: dated inspection report/);
     assert.doesNotMatch(onePhotoHtml, /QUFB|before\.jpg/);
     assert.match(onePhotoHtml, /QkJC/); assert.match(onePhotoHtml, /Move-in photo not provided/);
   });
@@ -156,6 +173,8 @@ async function main() {
   await response("omit");await click("01");await response("omit");
   ok("all omitted blocks export",()=>assert.ok(button("Export current evidence bundle").disabled));
   await response("question");await toggleTracker();await selectStatus("Move-in records","provided");await selectStatus("Itemised cost evidence","requested");
+  await input('[aria-label="Room"]',"Kitchen");
+  await input('[aria-label="Item"]',"Countertop");
   await input('[aria-label="Proposed amount in pounds"]',"35");
   await input('textarea',"Reviewer comparison note");
   await selectPhotoContext("tenancy");await selectPhotoContext("other");

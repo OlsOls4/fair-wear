@@ -21,6 +21,12 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [showReply, setShowReply] = useState(false);
+  const [exportReviewRequest, setExportReviewRequest] = useState(0);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const exportReviewRef = useRef<HTMLElement>(null);
+  const roomRef = useRef<HTMLInputElement>(null);
+  const itemRef = useRef<HTMLInputElement>(null);
+  const pendingFieldFocus = useRef<"room" | "item" | null>(null);
   const [handoffError, setHandoffError] = useState("");
   const [transferredCount, setTransferredCount] = useState<number | null>(null);
   const transferChecked = useRef(false);
@@ -32,6 +38,14 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   // Explicit list navigation or removal moves focus, never initial load or field edits.
   useEffect(() => {
     if (!editorNavigation) return;
+    const field = pendingFieldFocus.current;
+    pendingFieldFocus.current = null;
+    if (field) {
+      const input = field === "room" ? roomRef.current : itemRef.current;
+      input?.focus({ preventScroll: true });
+      input?.scrollIntoView({ behavior: "instant", block: "center" });
+      return;
+    }
     const afterRemoval = removedItemFocus.current;
     removedItemFocus.current = false;
     if (!afterRemoval && !window.matchMedia?.("(max-width: 740px)").matches) return;
@@ -43,6 +57,26 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   const totals = caseTotals(items), illustration = replacementIllustration(selected);
   const draft = caseReply(document);
   const photoLabels = casePhotoLabels(document);
+  const missingLabels = mode === "personal" ? items.flatMap((item, index) => item.response === "omit" ? [] : (["room", "item"] as const).filter((field) => !item[field].trim()).map((field) => ({ id: item.id, number: index + 1, field }))) : [];
+  useEffect(() => {
+    if (!exportReviewRequest) return;
+    exportReviewRef.current?.focus({ preventScroll: true });
+    exportReviewRef.current?.scrollIntoView({ behavior: "instant", block: "center" });
+  }, [exportReviewRequest]);
+  function requestExport() {
+    if (busy || !totals.included) return;
+    if (missingLabels.length) { setExportReviewRequest((value) => value + 1); return; }
+    setExportReviewRequest(0);
+    void exportBundle();
+  }
+  function cancelExportReview() {
+    setExportReviewRequest(0);
+    exportButtonRef.current?.focus({ preventScroll: true });
+  }
+  function reviewMissingField(id: string, field: "room" | "item") {
+    pendingFieldFocus.current = field;
+    selectItem(id);
+  }
   useEffect(() => {
     if (transferChecked.current) return;
     transferChecked.current = true;
@@ -77,7 +111,7 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
     if (next === mode) return;
     if (dirty && !window.confirm("Start a different case? Changes on this page will be cleared. Export your current case first if you want to keep it.")) return;
     const nextItems = next === "sample" ? sampleItems : [emptyCaseItem(`claim-${nextId.current++}`)];
-    setItems(nextItems); setSelectedId(nextItems[0].id); setMode(next); setPhotoContext("tenancy"); setTitle(next === "sample" ? "Demo flat: proposed deposit deductions" : "My proposed deposit deductions"); setDirty(false); setStatus(""); setShowReply(false); setTransferredCount(null); setHandoffError("");
+    setItems(nextItems); setSelectedId(nextItems[0].id); setMode(next); setExportReviewRequest(0); setPhotoContext("tenancy"); setTitle(next === "sample" ? "Demo flat: proposed deposit deductions" : "My proposed deposit deductions"); setDirty(false); setStatus(""); setShowReply(false); setTransferredCount(null); setHandoffError("");
   }
   function resetTransferredCase() {
     if (dirty && !window.confirm("Reset this sample case? Its responses, notes and edited amounts will be cleared. Your saved choices on the sample review will not change.")) return;
@@ -142,7 +176,7 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
         <div className={styles.sectionLabel}><span>02 / EVIDENCE & RESPONSE</span><span>{mode === "sample" ? "GENERATED SAMPLE IMAGERY" : "MANUAL REVIEW"}</span></div>
         <div className={styles.itemHeading}><h2 ref={editorHeadingRef} tabIndex={-1}>{selected.item || "Add a proposed deduction"}</h2><span>{selected.room.replaceAll("-", " ")}</span></div>
         <fieldset disabled={busy} className={styles.fields}><legend className={styles.srOnly}>Claim details</legend>
-          <div className={styles.fieldRow}><label>Room<input aria-label="Room" value={selected.room} maxLength={100} onChange={(e) => patch(selected.id, { room: e.target.value })} placeholder="e.g. Bedroom" /></label><label>Item<input aria-label="Item" value={selected.item} maxLength={100} onChange={(e) => patch(selected.id, { item: e.target.value })} placeholder="e.g. Carpet" /></label><label>Proposed amount (£)<input aria-label="Proposed amount in pounds" inputMode="decimal" value={selected.claimPounds} aria-invalid={amountInvalid} aria-describedby={amountInvalid ? "amount-error" : undefined} maxLength={15} onChange={(e) => patch(selected.id, { claimPounds: e.target.value })} placeholder="Unknown" /></label></div>
+          <div className={styles.fieldRow}><label>Room<input ref={roomRef} aria-label="Room" value={selected.room} maxLength={100} onChange={(e) => patch(selected.id, { room: e.target.value })} placeholder="e.g. Bedroom" /></label><label>Item<input ref={itemRef} aria-label="Item" value={selected.item} maxLength={100} onChange={(e) => patch(selected.id, { item: e.target.value })} placeholder="e.g. Carpet" /></label><label>Proposed amount (£)<input aria-label="Proposed amount in pounds" inputMode="decimal" value={selected.claimPounds} aria-invalid={amountInvalid} aria-describedby={amountInvalid ? "amount-error" : undefined} maxLength={15} onChange={(e) => patch(selected.id, { claimPounds: e.target.value })} placeholder="Unknown" /></label></div>
           {amountInvalid && <p id="amount-error" className={styles.error}>Enter a non-negative amount with at most two decimal places, up to £1,000,000. This amount is excluded from totals until valid.</p>}
           <label>What is being claimed?<input value={selected.claimDescription} maxLength={500} onChange={(e) => patch(selected.id, { claimDescription: e.target.value })} placeholder="Use the wording from the deduction list" /></label>
         </fieldset>
@@ -159,11 +193,23 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
             <div className={styles.evidenceRequests} aria-live="polite"><b>Requests for this deduction</b>{selected.response === "omit" ? <p>This deduction and its checklist are excluded from the draft and bundle.</p> : evidenceRequests(selected).length ? <ul>{evidenceRequests(selected).map((request) => <li key={request}>{request}</li>)}</ul> : <p>No outstanding evidence requests from this checklist. This does not mean the evidence is sufficient or the charge is accepted.</p>}</div>
           </fieldset>}
         </section>
+        <fieldset disabled={busy} className={styles.fields}>
+          <legend>Supporting record references (optional)</legend>
+          <label className={styles.noteLabel}>Supporting record references<textarea aria-label="Supporting record references" aria-describedby="supporting-records-help" value={selected.supportingRecords ?? ""} maxLength={5000} rows={3} onChange={(event) => patch(selected.id, { supportingRecords: event.target.value })} placeholder="List one record per line: date (if known), description, and filename or reference. Leave unknown dates blank." /></label>
+          <p id="supporting-records-help">List photos, inspection reports, invoices or other records for this deduction. These are your unverified references, not attached files. Keep originals separately. This list stays in this tab and appears only in the exported bundle, not the response draft. It does not change evidence statuses. Leaving this deduction out also excludes its list from export.</p>
+        </fieldset>
         <details className={styles.assumptions}><summary>Explore cost assumptions <span>Optional, never inferred by AI</span></summary><fieldset disabled={busy} className={styles.fields}><legend className={styles.srOnly}>Cost assumptions</legend><label>Type of proposed cost<select value={selected.costType} aria-label="Type of proposed cost" onChange={(e) => patch(selected.id, { costType: e.target.value as CostType })}><option value="unknown">Not specified</option><option value="replacement">Replacement</option><option value="repair">Repair</option><option value="cleaning">Cleaning</option></select></label>{selected.costType === "replacement" ? <><p>Try a simple remaining-value calculation with your own assumptions. No age, lifespan or quality is filled in from an item label.</p><div className={styles.fieldRow}><label>Replacement cost (£)<input aria-label="Replacement cost in pounds" inputMode="decimal" value={selected.replacementCost} maxLength={15} onChange={(e) => patch(selected.id, { replacementCost: e.target.value })} placeholder="Unknown" /></label><label>Age at move-in (years)<input aria-label="Age at move-in in years" inputMode="decimal" value={selected.ageAtMoveIn} maxLength={8} onChange={(e) => patch(selected.id, { ageAtMoveIn: e.target.value })} placeholder="Unknown" /></label></div><div className={styles.fieldRow}><label>Tenancy length (years)<input aria-label="Tenancy length in years" inputMode="decimal" value={selected.tenancyYears} maxLength={8} onChange={(e) => patch(selected.id, { tenancyYears: e.target.value })} placeholder="Unknown" /></label><label>Expected useful life (years)<input aria-label="Expected useful life in years" inputMode="decimal" value={selected.usefulLife} maxLength={8} onChange={(e) => patch(selected.id, { usefulLife: e.target.value })} placeholder="Unknown" /></label></div><label>Quality and starting-condition basis<input value={selected.qualityBasis} aria-label="Quality and starting-condition basis" maxLength={500} onChange={(e) => patch(selected.id, { qualityBasis: e.target.value })} placeholder="e.g. invoice, inventory or an explicitly unverified assumption" /></label><div className={styles.calculation} role="status" data-testid="replacement-illustration">{illustration.status === "illustrative" ? <><span>Remaining-value illustration</span><strong>{pounds(illustration.remainingPence)}</strong><p>{pounds(illustration.costPence)} × max(0, 1 − ({illustration.age} + {illustration.tenancy}) ÷ {illustration.life})</p><small>Unverified assumptions, not a suggested settlement or tenant liability. This does not change your claimed amount, response or totals.</small></> : <p>No estimate yet. {illustration.status === "needs_inputs" ? `Supply: ${illustration.missing.join(", ")}.` : ""}</p>}</div></> : <p>No replacement-life calculation applies to this selection. Evidence of cost, cause and responsibility still needs review.</p>}</fieldset></details>
         {mode === "personal" && <div className={styles.removeDeduction}><button type="button" className={styles.secondary} disabled={busy} onClick={removeSelectedItem}>Remove this deduction</button><p>Clears this deduction’s notes, photos and evidence choices from the case. To keep them but exclude the deduction from exports, choose “Leave out of response” above.</p></div>}
       </section>
     </div>
-    <section className={styles.export} aria-label="Prepare current evidence bundle"><div><p className={styles.kicker}>03 / TAKE YOUR REVIEW WITH YOU</p><h2>Your choices, carried through.</h2><p>The bundle contains your current response, claim amounts and side-by-side photos. Original model suggestions remain separately labelled.</p><label>Bundle title<input value={title} maxLength={200} disabled={busy} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} /></label></div><div className={styles.exportActions}><p id="export-process-warning" className={styles.exportWarning}>{RENTER_GUIDANCE.steps[0]}</p><button className={styles.primary} aria-describedby="export-process-warning" onClick={exportBundle} disabled={busy || !totals.included}>{busy ? "Preparing…" : "Export current evidence bundle"} <Arrow down /></button><button className={styles.secondary} aria-expanded={showReply} aria-controls="case-current-reply" onClick={() => setShowReply(!showReply)}>{showReply ? "Hide" : "Preview"} response draft</button><small>A self-contained HTML file. Open it and use Print → Save as PDF. Nothing is sent. Check photos and notes for personal information before sharing.</small>{!totals.included && <small>Add at least one included item to export.</small>}</div></section>
+    <section className={styles.export} aria-label="Prepare current evidence bundle"><div><p className={styles.kicker}>03 / TAKE YOUR REVIEW WITH YOU</p><h2>Your choices, carried through.</h2><p>The bundle contains your current response, claim amounts and side-by-side photos. Original model suggestions remain separately labelled.</p><label>Bundle title<input value={title} maxLength={200} disabled={busy} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} /></label></div><div className={styles.exportActions}><p id="export-process-warning" className={styles.exportWarning}>{RENTER_GUIDANCE.steps[0]}</p><button ref={exportButtonRef} className={styles.primary} aria-describedby="export-process-warning" onClick={requestExport} disabled={busy || !totals.included}>{busy ? "Preparing…" : "Export current evidence bundle"} <Arrow down /></button><button className={styles.secondary} aria-expanded={showReply} aria-controls="case-current-reply" onClick={() => setShowReply(!showReply)}>{showReply ? "Hide" : "Preview"} response draft</button><small>A self-contained HTML file. Open it and use Print → Save as PDF. Nothing is sent. Check photos and notes for personal information before sharing.</small>{!totals.included && <small>Add at least one included item to export.</small>}</div></section>
+    {exportReviewRequest > 0 && missingLabels.length > 0 && <section ref={exportReviewRef} tabIndex={-1} className={styles.exportReview} aria-labelledby="export-review-heading">
+      <h2 id="export-review-heading">Some deduction labels are blank</h2>
+      <p>Room and item labels help someone understand your response. Fill them in if you can, or export without completing them. This is a completeness reminder, not a check of your evidence or entitlement.</p>
+      <ul>{missingLabels.map(({ id, number, field }) => <li key={`${id}-${field}`}><button className={styles.secondary} disabled={busy} onClick={() => reviewMissingField(id, field)}>Add {field} for deduction {number}</button></li>)}</ul>
+      <p>An unknown amount is allowed and stays marked unknown. It is not treated as £0 or included in totals. Photos and notes are optional.</p>
+      <div className={styles.reviewActions}><button className={styles.primary} disabled={busy || !totals.included} onClick={() => { cancelExportReview(); void exportBundle(); }}>Export anyway</button><button className={styles.secondary} disabled={busy} onClick={cancelExportReview}>Cancel export</button></div>
+    </section>}
     <p role="status" className={styles.status}>{status}</p>
     {showReply && <section id="case-current-reply" className={styles.draft}><h2>Current draft, not sent</h2><pre>{draft}</pre></section>}
     <section className={styles.guidance} aria-labelledby="renter-guidance-heading">
