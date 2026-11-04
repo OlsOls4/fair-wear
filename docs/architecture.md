@@ -1,6 +1,6 @@
 # Fair Wear — architecture and build plan
 
-Meta Global AI Developer Hackathon, Indie track, theme "Build for Your World". Build window 26 Oct – 4 Nov 2026 21:00 ET (5 Nov 01:00 GMT).
+Meta Global AI Developer Hackathon, Indie track, theme "Build for Your World". Build window 26 Oct – 4 Nov 2026 21:00 ET (5 Nov 02:00 UTC/GMT; corrected from 01:00 in this original plan).
 
 ## User flow
 1. Tenant creates a "property" and picks rooms.
