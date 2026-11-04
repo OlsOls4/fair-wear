@@ -6,6 +6,7 @@ import { renderToString } from "react-dom/server";
 import { JSDOM } from "jsdom";
 // @ts-expect-error React DOM runtime is installed without its optional declarations.
 import { createRoot } from "react-dom/client";
+import { evidenceFindingHref, evidenceFindingFromHash } from "../lib/evidence-navigation";
 import Board from "../components/Board";
 import Demo from "../app/demo/page";
 import Workflow from "../app/upload/page";
@@ -55,6 +56,40 @@ async function main() {
   async function choose(findingId: string, value: string) {
     await act(async () => { const input = select(findingId); input.value = value; input.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
   }
+  ok("finding parser rejects malformed, unknown and injected IDs", () => {
+    for (const hash of ["#finding=%", "#finding=private", "#finding=__proto__", `#finding=${id}&review=challenge`, "#finding=" + "a".repeat(600)]) assert.equal(evidenceFindingFromHash(hash, [id]), null);
+    assert.equal(evidenceFindingFromHash(evidenceFindingHref(id).slice(5), [id]), id);
+  });
+  saveSampleResponses(storage, { [id]: "Not claimed" });
+  dom.window.history.replaceState(null, "", evidenceFindingHref(id));
+  await mount(<Demo />);
+  ok("explicit link focuses labelled finding without overwriting saved responses", () => {
+    assert.equal(document.activeElement?.getAttribute("data-finding-id"), id);
+    assert.equal(select(id).value, "Not claimed");
+    assert.ok(document.activeElement?.getAttribute("aria-describedby"));
+    assert.match(document.activeElement!.textContent!, /Inspection notes are not imported/);
+  });
+  const preserved = storage.getItem(KEY);
+  async function navigateHash(hash: string) {
+    await act(async () => { dom.window.history.replaceState(null, "", `/demo${hash}`); dom.window.dispatchEvent(new dom.window.HashChangeEvent("hashchange")); });
+  }
+  await act(async () => Array.from(host.querySelectorAll("button")).find((b) => b.textContent?.startsWith("Cleaning ("))!.click());
+  await navigateHash(`#finding=${oven}`);
+  await navigateHash(`#finding=${id}`);
+  ok("hash navigation reveals and refocuses exact card with responses untouched", () => {
+    assert.equal(document.activeElement?.getAttribute("data-finding-id"), id);
+    assert.equal(host.querySelectorAll("[data-finding-id]").length, demoFindings.length);
+    assert.equal(storage.getItem(KEY), preserved);
+  });
+  await navigateHash("#finding=%");
+  ok("bad link has an honest fallback and no mutation", () => {
+    assert.match(host.textContent!, /link is invalid or no longer available/);
+    assert.equal(storage.getItem(KEY), preserved);
+  });
+  await mount(<Board property={demoData.property} findings={demoFindings} />);
+  ok("non-opted-in boards ignore finding navigation", () => assert.doesNotMatch(host.textContent!, /link is invalid or no longer available/));
+  dom.window.history.replaceState(null, "", "/demo");
+  storage.clear();
   await mount(<Demo />);
   ok("sample disclosures explain navigation/reload, reset and browser restore", () => {
     assert.match(notice(), /across navigation and reload/);

@@ -25,6 +25,10 @@ async function main() {
   function detail() { return host.querySelector('[data-testid="inspection-case"]')!; }
   await act(async () => root.render(<EvidenceLab />));
   test("starts on recorded carpet mismatch with test-intent caveat", () => { assert.match(detail().textContent!, /Planted test intentfair wear/); assert.match(detail().textContent!, /82% self-reported confidence/); assert.match(detail().textContent!, /not independent pixel-level ground truth/); });
+  test("board link carries only the selected public observation, not a review choice", () => {
+    assert.equal(detail().querySelector('a[href^="/demo#finding="]')?.getAttribute("href"), "/demo#finding=bedroom-carpet-0-0");
+    assert.match(detail().textContent!, /inspection note is not transferred/);
+  });
   test("all image links are real local source paths, with generated-image alt text", () => { for (const img of host.querySelectorAll("img")) { assert.ok(fs.existsSync(`public${img.getAttribute("src")}`)); assert.match(img.alt, /Generated test imagery/); } });
   const select = detail().querySelector("select")!;
   await act(async () => { select.value = "challenge"; select.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
@@ -33,6 +37,11 @@ async function main() {
   await click("Evidence gap");
   test("spotlight focus announces the newly rendered case", () => assert.equal(focusedCaseText, "sealant"));
   test("missing output never invents a model prediction or missing item", () => { assert.match(detail().textContent!, /No crop pair exists/); assert.match(detail().textContent!, /A missing observation is not a missing item/); assert.match(detail().textContent!, /No Muse Spark judgment was saved/); assert.equal(detail().querySelector("select")!.value, "unreviewed"); });
+  test("evidence gap does not invent a board finding", () => {
+    assert.equal(detail().querySelector('a[href^="/demo#finding="]'), null);
+    assert.ok(detail().querySelector('a[href="/demo"]'));
+    assert.match(detail().textContent!, /no matching board card/);
+  });
   const gapReview = detail().querySelector("select")!;
   await act(async () => { gapReview.value = "hold"; gapReview.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
   await click("Decoy called damage");
@@ -42,7 +51,13 @@ async function main() {
   await click("All saved results");
   await click("wall3 observations");
   test("multiple crop observations can be inspected without collapsing disagreement", () => { assert.match(detail().textContent!, /Other crops disagree/); assert.match(detail().textContent!, /70% self-reported confidence/); });
+  const previousCropHref = detail().querySelector('a[href^="/demo#finding="]')!.getAttribute("href");
   await click("Crop 1");
+  test("multi-crop link changes to exactly the selected observation", () => {
+    const href = detail().querySelector('a[href^="/demo#finding="]')!.getAttribute("href");
+    assert.notEqual(href, previousCropHref);
+    assert.match(href!, /wall/);
+  });
   test("switching crops exposes the exact recorded negative result", () => assert.match(detail().textContent!, /95% self-reported confidence/));
   await click("Download inspection report");
   const report = JSON.parse(await downloaded!.text());

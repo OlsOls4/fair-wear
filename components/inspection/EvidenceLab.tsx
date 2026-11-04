@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { analyzeEvidence, explainCase, outcomeLabels, pretty, type Observation } from "@/lib/evidence/analysis";
 import { baselineEvidence, evidenceCases, evidenceManifest } from "@/lib/evidence/demo";
 import { validateSource, verifySourceBytes } from "@/lib/evidence/integrity";
+import { evidenceFindingHref } from "@/lib/evidence-navigation";
 import { confidenceLabel } from "@/lib/findings";
 
 type Review = "hold" | "challenge" | "supported";
@@ -140,7 +141,13 @@ export default function EvidenceLab() {
           <h3 id="inspect-human-heading"><span className="inspect-step">4</span> Make the human review explicit</h3>
           <label htmlFor="inspection-review">Your review of this evidence</label><select id="inspection-review" value={review} onChange={(event) => { const next = { ...reviews }; if (event.target.value === "unreviewed") delete next[selected]; else next[selected] = event.target.value as Review; setReviews(next); }}><option value="unreviewed">Not reviewed · hold for more evidence</option>{Object.entries(reviewLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select>
           <p className="inspect-small">Unreviewed items default to Hold. This is a local inspection note, saved only in your downloaded report. It does not change the model record, the findings-board draft, or any amount. It resets on reload.</p>
-          <p><a href="/demo">Continue to the findings board →</a></p>
+          {crop ? <>
+            <p><a href={evidenceFindingHref(crop.id)} aria-describedby="inspect-board-navigation">Open this crop’s finding on the board →</a></p>
+            <p id="inspect-board-navigation" className="inspect-small">Opens finding {crop.id}. Only this public sample reference is carried in the link. Your inspection note is not transferred; choose your response separately on the board. Existing board responses are preserved.</p>
+          </> : <>
+            <p className="inspect-small">There is no saved finding for this evidence gap, so no matching board card can be opened.</p>
+            <p><a href="/demo">Open all findings on the board →</a></p>
+          </>}
         </section>
       </section>
     </div>

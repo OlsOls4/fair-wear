@@ -67,7 +67,7 @@ async function main() {
   ok("sample comparison begins with real existing generated images and an accessible native slider", () => {
     const comparison = host.querySelector(".sample-comparison")!;
     assert.equal(comparison.querySelectorAll("img").length, 2);
-    assert.equal(comparison.querySelector("img")!.getAttribute("src"), "/demo/flat/living-room-move-in.jpg");
+    assert.equal(comparison.querySelector("img")!.getAttribute("src"), "/demo/flat/bedroom-move-in.jpg");
     const slider = comparison.querySelector<HTMLInputElement>('input[type="range"]')!;
     assert.equal(slider.value, "50");
     assert.equal(slider.getAttribute("aria-valuetext"), "50% move-in, 50% move-out");
@@ -132,7 +132,7 @@ async function main() {
     assert.ok(region?.hidden);
     assert.equal(opener.getAttribute("aria-expanded"), "false");
   });
-  for (const [label, id] of [["Inspect a change", "living-room-carpet-0-1"], ["Inspect a model error", "bedroom-carpet-0-0"]]) {
+  for (const [label, id] of [["Inspect a change", "bedroom-carpet-0-0"], ["Inspect a model error", "bathroom-bath-0-0"]]) {
     await click("No change (13)");
     assert.equal(host.querySelector(`[data-finding-id="${id}"]`), null);
     await click(label);
@@ -205,7 +205,7 @@ async function main() {
   ok("reset restores counts and default draft", () => { assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13"); assert.ok(!draft().includes(`[${noChange.id}]`)); assert.ok(draft().includes(`[${cleaning.id}]: Agree in principle`)); });
   await click("No change (13)");
   await click("Inspect a model error");
-  ok("review shortcut still works after reset", () => assert.equal(document.activeElement, card("bedroom-carpet-0-0")));
+  ok("review shortcut still works after reset", () => assert.equal(document.activeElement, card("bathroom-bath-0-0")));
   const evidenceCard = card("bedroom-carpet-0-0");
   const enlarge = evidenceCard.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!;
   await act(async () => enlarge.click());
@@ -287,7 +287,7 @@ async function main() {
   ok("evidence closes and reopens using mocked dialog API", () => { assert.equal(dialog.open, true); assert.equal(dialog.querySelector("img")!.getAttribute("src"), "/demo/flat/crops/bedroom-move_in-carpet-0.jpg"); });
   await act(async () => evidenceButton("Close").click());
   await click("Inspect a change");
-  ok("review shortcut still works after closing evidence", () => assert.equal(document.activeElement, card("living-room-carpet-0-1")));
+  ok("review shortcut still works after closing evidence", () => assert.equal(document.activeElement, card("bedroom-carpet-0-0")));
   await act(async () => root.render(<Sample />));
   ok("sample and evaluation describe real results on generated imagery", () => {
     assert.match(host.querySelector(".banner")!.textContent!, /Generated test images · Real model results/);

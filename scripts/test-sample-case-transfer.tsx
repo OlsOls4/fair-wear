@@ -100,6 +100,12 @@ async function main() {
   async function setResponse(value: string) { await act(async () => host.querySelector<HTMLInputElement>(`input[type=radio][value=${value}]`)!.click()); }
   const board = <Board rememberSampleResponses property={demoData.property} findings={demoFindings} />;
   await mount(board);
+  await click("Inspect a change");
+  ok("first guided stop is the bedroom carpet supported by the case handoff", () => {
+    assert.equal(document.activeElement?.getAttribute("data-finding-id"), carpet);
+    assert.ok(samples.some((item) => item.model?.id === carpet));
+    assert.match(text(), /Start with the bedroom carpet/);
+  });
   await choose(carpet, "Agree"); await choose(oven, "Not claimed"); await choose(other, "Dispute");
   await click("Cleaning ("); await click("Continue to case builder");
   let prepared = JSON.parse(storage.getItem(KEY)!);

@@ -9,6 +9,27 @@ export interface Item {
   moved?: boolean;                                            // set by Muse Spark pair check
 }
 export interface MatchedPair { room: string; label: string; before?: Item; after?: Item; similarity: number }
+/** An item with plausible candidates but no mutually unique correspondence. Never a verdict. */
+export interface UnresolvedCorrespondence {
+  status: "needs_review";
+  side: "before" | "after";
+  item: Item;
+  reason: "tied_best" | "not_mutually_unique";
+  candidates: { item: Item; similarity: number }[];
+}
+export interface MatchingCoverage {
+  beforeItems: number; afterItems: number;
+  matchedPairs: number; beforeOnly: number; afterOnly: number;
+  unresolvedBefore: number; unresolvedAfter: number;
+  resolvedItems: number; totalItems: number;
+}
+export interface MatchingResult {
+  pairs: MatchedPair[];
+  unresolved: UnresolvedCorrespondence[];
+  coverage: MatchingCoverage;
+  minScore: number;
+  tieTolerance: number;
+}
 export interface CalculationBasis {
   usefulLifeYears: number;            // explicitly supplied, never inferred from item label
   qualityBasis: string;               // supplied quality/condition assumption, not verification
@@ -31,4 +52,4 @@ export interface Finding {
   simulated?: boolean;                 // true when produced in MOCK mode or from planted/generated demo data
   cardUrl?: string;                    // Muse Image comparison card
 }
-export interface EvidencePack { property: string; generatedAt: string; findings: Finding[]; replyDraft: string }
+export interface EvidencePack { property: string; generatedAt: string; findings: Finding[]; replyDraft: string; correspondence?: (MatchingResult & { room: string })[] }

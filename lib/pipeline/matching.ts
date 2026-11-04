@@ -1,7 +1,7 @@
 // Stage 3: match the same object across visits.
 // Score = label agreement (exact or synonym) + appearance cosine (when an embedding is
-// present) + where it sits in the frame. Greedy one-to-one assignment, best score first.
-import type { Item, MatchedPair } from "./types";
+// present) + where it sits in the frame. Accept only mutually unique best candidates.
+import type { Item, MatchedPair, MatchingResult, UnresolvedCorrespondence } from "./types";
 
 const SYNONYMS: Record<string, string> = {
   rug: "carpet", flooring: "floor", "floorboards": "floor", drapes: "curtains", blind: "curtains", blinds: "curtains",
@@ -46,21 +46,54 @@ export function pairScore(b: Item, a: Item): number {
   return s;
 }
 
-export function matchItems(before: Item[], after: Item[], minScore = 0.5): MatchedPair[] {
-  const cands: { b: number; a: number; s: number }[] = [];
-  before.forEach((b, i) => after.forEach((a, j) => { const s = pairScore(b, a); if (s >= minScore) cands.push({ b: i, a: j, s }); }));
-  cands.sort((x, y) => y.s - x.s);
+// Absolute score margin, not a confidence probability. Close alternatives require review.
+export const MATCH_TIE_TOLERANCE = 0.05;
+export function matchItems(before: Item[], after: Item[], minScore = 0.5, tieTolerance = MATCH_TIE_TOLERANCE): MatchingResult {
+  if (!Number.isFinite(minScore) || minScore <= 0 || !Number.isFinite(tieTolerance) || tieTolerance < 0) {
+    throw new Error("Matching requires a positive finite minScore and nonnegative finite tieTolerance");
+  }
+  type Candidate = { b: number; a: number; s: number };
+  const byBefore: Candidate[][] = before.map(() => []), byAfter: Candidate[][] = after.map(() => []);
+  before.forEach((b, i) => after.forEach((a, j) => {
+    const s = pairScore(b, a);
+    if (Number.isFinite(s) && s >= minScore) {
+      const c = { b: i, a: j, s }; byBefore[i].push(c); byAfter[j].push(c);
+    }
+  }));
+  // Evaluate ORIGINAL candidate sets once. Never promote a runner-up after consuming a match.
+  const best = (cs: Candidate[]) => {
+    if (!cs.length) return undefined;
+    const max = Math.max(...cs.map(c => c.s));
+    const top = cs.filter(c => max - c.s <= tieTolerance + 1e-12);
+    return top.length === 1 ? top[0] : undefined;
+  };
+  const bb = byBefore.map(best), ba = byAfter.map(best);
   const ub = new Set<number>(), ua = new Set<number>();
   const pairs: MatchedPair[] = [];
-  for (const c of cands) {
-    if (ub.has(c.b) || ua.has(c.a)) continue;
+  for (const c of bb) {
+    if (!c || ba[c.a] !== c) continue;
     ub.add(c.b); ua.add(c.a);
-    const b = before[c.b], a = after[c.a];
-    pairs.push({ room: b.room, label: normLabel(b.label), before: b, after: a, similarity: c.s });
+    pairs.push({ room: before[c.b].room, label: normLabel(before[c.b].label), before: before[c.b], after: after[c.a], similarity: c.s });
   }
-  before.forEach((b, i) => { if (!ub.has(i)) pairs.push({ room: b.room, label: normLabel(b.label), before: b, similarity: 0 }); });
-  after.forEach((a, j) => { if (!ua.has(j)) pairs.push({ room: a.room, label: normLabel(a.label), after: a, similarity: 0 }); });
-  return pairs;
+  const unresolved: UnresolvedCorrespondence[] = [];
+  let beforeOnly = 0, afterOnly = 0;
+  const matchedPairs = pairs.length;
+  before.forEach((item, i) => {
+    if (ub.has(i)) return;
+    if (!byBefore[i].length) { beforeOnly++; pairs.push({ room: item.room, label: normLabel(item.label), before: item, similarity: 0 }); }
+    else unresolved.push({ status: "needs_review", side: "before", item, reason: bb[i] ? "not_mutually_unique" : "tied_best", candidates: byBefore[i].map(c => ({ item: after[c.a], similarity: c.s })) });
+  });
+  after.forEach((item, i) => {
+    if (ua.has(i)) return;
+    if (!byAfter[i].length) { afterOnly++; pairs.push({ room: item.room, label: normLabel(item.label), after: item, similarity: 0 }); }
+    else unresolved.push({ status: "needs_review", side: "after", item, reason: ba[i] ? "not_mutually_unique" : "tied_best", candidates: byAfter[i].map(c => ({ item: before[c.b], similarity: c.s })) });
+  });
+  return { pairs, unresolved, minScore, tieTolerance, coverage: {
+    beforeItems: before.length, afterItems: after.length, matchedPairs, beforeOnly, afterOnly,
+    unresolvedBefore: unresolved.filter(x => x.side === "before").length,
+    unresolvedAfter: unresolved.filter(x => x.side === "after").length,
+    resolvedItems: 2 * matchedPairs + beforeOnly + afterOnly, totalItems: before.length + after.length,
+  } };
 }
 
 export type ChangeStatus = "added" | "removed" | "moved" | "unchanged" | "unresolved";

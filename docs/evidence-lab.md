@@ -39,3 +39,9 @@ The downloaded `fair-wear-inspection.json` includes the threshold, deterministic
 - `python scripts/test-evidence-browser.py`: optional real-browser regression for images, focus, navigation, downloads, repeated verification, reload and mobile overflow. Requires a running production server and a permitted Chromium environment.
 
 The public site remains static for this route. There is no new endpoint, upload flow, key, paid call, external dependency or modification to the original demo artifacts.
+
+## Continue to the matching finding
+
+The selected saved crop links to its exact public finding on `/demo#finding=<observation-id>`. The board validates the ID against its findings, reveals all cards and moves keyboard focus to that labelled card. Multiple-crop cases follow the selected crop, including observations withheld by the threshold. Cases with no saved observation offer the full board without inventing a match. Unknown or malformed finding links show a fallback notice.
+
+This is navigation only: no inspection note, review choice, classification, photo or private field is transferred or written to storage. Existing board responses remain intact. Choose a board response separately. The public-reference fragment can be bookmarked and revisited, so it intentionally is not a one-use handoff. The separate sample-to-case response transfer retains its token-bound one-use behavior.

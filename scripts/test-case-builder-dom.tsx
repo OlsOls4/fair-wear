@@ -30,6 +30,19 @@ async function main() {
   function text(){return document.body.textContent!;}
   await act(async()=>root.render(<CaseBuilder sampleItems={sampleCaseItems(demoFindings)}/>));
   ok("initial sample discloses fictional demand and original model disagreement",()=>{assert.match(text(),/£910 demand is invented/);assert.match(text(),/82% model confidence/);assert.match(text(),/The evaluation disagrees/);});
+  async function toggleTracker(){await act(async()=>document.querySelector<HTMLInputElement>('.trackerToggle input')!.click());}
+  async function selectStatus(label:string,value:string){const el=document.querySelector<HTMLSelectElement>(`select[aria-label="${label} status"]`)!;assert.ok(el);await act(async()=>{el.value=value;el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
+  await toggleTracker();
+  ok("tracker starts explicitly unknown despite sample photos",()=>{assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Move-in records status"]')!.value,"unknown");assert.equal(document.querySelectorAll('.evidenceGrid select').length,4);});
+  await selectStatus("Move-in records","provided");await selectStatus("Move-out records","requested");await selectStatus("Itemised cost evidence","not_applicable");await selectStatus("Age and condition basis","unavailable");
+  ok("specific requests omit provided and not applicable evidence",()=>{const requests=document.querySelector('.evidenceRequests')!.textContent!;assert.doesNotMatch(requests,/move-in inventory|itemised cost breakdown/);assert.match(requests,/remains requested/);assert.match(requests,/alternative supporting records/);});
+  await click("oven");
+  ok("checklist is independent per claim",()=>assert.equal(document.querySelector<HTMLInputElement>('.trackerToggle input')!.checked,false));
+  await click("carpet");
+  ok("tracking choices survive navigation",()=>assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Move-in records status"]')!.value,"provided"));
+  await toggleTracker();await toggleTracker();
+  ok("turning tracker off then on clears its old selections",()=>assert.equal(document.querySelector<HTMLSelectElement>('[aria-label="Move-in records status"]')!.value,"unknown"));
+  await toggleTracker();
   await input("textarea", "CORRECTED REVIEW NOTE");
   await input('[aria-label="Replacement cost in pounds"]', "600");
   await input('[aria-label="Age at move-in in years"]', "3");
@@ -57,10 +70,12 @@ async function main() {
   ok("adding private claim creates independent blank claim",()=>{assert.equal(document.querySelectorAll('button[aria-pressed]').length,2);assert.equal(document.querySelector<HTMLInputElement>('[aria-label="Item"]')!.value,"");});
   await response("omit");await click("01");await response("omit");
   ok("all omitted blocks export",()=>assert.ok(button("Export current evidence bundle").disabled));
-  await response("question");await click("Export current evidence bundle");
+  await response("question");await toggleTracker();await selectStatus("Move-in records","provided");await selectStatus("Itemised cost evidence","requested");
+  await click("Export current evidence bundle");
   ok("private export prepares a download with no image fetch",()=>{assert.equal(downloads,1);assert.equal(filename,"fair-wear-my-evidence.html");assert.match(text(),/Nothing was sent/);});
   assert.ok(blob);const html=await blob.text();
   ok("export has one included item and accurate manual-only provenance",()=>{assert.match(html,/1 included item\(s\).*1 omitted item\(s\)/);assert.match(html,/were not uploaded or analysed by AI/);assert.doesNotMatch(html,/Original verdict/);});
+  ok("download contains current reviewer statuses without storing them",()=>{assert.match(html,/Reviewer evidence checklist/);assert.match(html,/Move-in records: <b>Provided/);assert.match(html,/Itemised cost evidence: <b>Requested/);assert.equal(dom.window.localStorage.length,0);assert.equal(dom.window.sessionStorage.length,0);});
   await act(async()=>root.unmount());
   globalThis.setTimeout = realTimeout;
   console.log(`Passed ${checks} case-builder DOM checks. Native APIs are mocked.`);

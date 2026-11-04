@@ -22,11 +22,11 @@ async function main() {
   });
   const before = item("move_in"), after = item("move_out");
   const matched: MatchedPair = { room: "living-room", label: "sofa", before, after, similarity: 1 };
-  const unmatched = [...matchItems([before], []), ...matchItems([], [after])];
+  const unmatched = [...matchItems([before], []).pairs, ...matchItems([], [after]).pairs];
   assert.equal(unmatched.length, 2);
   assert.deepEqual(unmatched.map(changeStatus), ["unresolved", "unresolved"]);
   assert.equal(changeStatus({ room: "living-room", label: "sofa", similarity: 0 }), "unresolved");
-  const wrongRoom = matchItems([before], [item("move_out", "sofa", "bedroom")]);
+  const wrongRoom = matchItems([before], [item("move_out", "sofa", "bedroom")]).pairs;
   assert.equal(wrongRoom.length, 2);
   assert.ok(wrongRoom.every((pair) => changeStatus(pair) === "unresolved"));
   passed("unmatched and cross-room detections remain unresolved, not added or removed");

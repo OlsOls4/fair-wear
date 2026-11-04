@@ -6,6 +6,7 @@ import { confidenceLabel, type F } from "@/lib/findings";
 import { calculateShare } from "@/lib/pipeline/guidance";
 import { readSampleResponses, saveSampleResponses } from "@/lib/sample-review-session";
 import { prepareSampleCaseTransfer, SAMPLE_CASE_TRANSFER_KEY } from "@/lib/sample-case-transfer";
+import { evidenceFindingFromHash } from "@/lib/evidence-navigation";
 import EvidencePair from "./EvidencePair";
 
 export type { F } from "@/lib/findings";
@@ -13,7 +14,7 @@ export { replyDraft } from "@/lib/reply";
 const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear & tear", cleaning: "Cleaning", no_change: "No change", missing: "Missing", added: "Added", unresolved: "Unresolved" };
 const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved", "no_change"];
 
-export default function Board({ property, findings, banner, reply, pdf, rememberSampleResponses = false }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string; rememberSampleResponses?: boolean }) {
+export default function Board({ property, findings, banner, reply, pdf, rememberSampleResponses = false, allowEvidenceNavigation = false }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string; rememberSampleResponses?: boolean; allowEvidenceNavigation?: boolean }) {
   const boardId = useId();
   const [filter, setFilter] = useState("all");
   const [showReply, setShowReply] = useState(false);
@@ -25,6 +26,8 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   const [transferring, setTransferring] = useState(false);
   const transferInFlight = useRef(false);
   const [navigationTarget, setNavigationTarget] = useState<{ findingId?: string } | null>(null);
+  const [evidenceTarget, setEvidenceTarget] = useState<string | null>(null);
+  const [evidenceLinkError, setEvidenceLinkError] = useState("");
   const findingRefs = useRef(new Map<string, HTMLElement>());
   const draftHeadingRef = useRef<HTMLHeadingElement>(null);
   const draftOpenerRef = useRef<HTMLButtonElement | null>(null);
@@ -48,9 +51,23 @@ export default function Board({ property, findings, banner, reply, pdf, remember
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);
   }, [rememberSampleResponses]);
+  useEffect(() => {
+    if (!allowEvidenceNavigation) return;
+    function followEvidenceLink() {
+      const hash = window.location.hash;
+      const id = evidenceFindingFromHash(hash, findings.map((finding) => finding.id));
+      setEvidenceTarget(id);
+      setEvidenceLinkError(hash.startsWith("#finding=") && !id
+        ? "This sample finding link is invalid or no longer available. All findings remain available below; your responses have not changed." : "");
+      if (id) { setFilter("all"); setNavigationTarget({ findingId: id }); }
+    }
+    followEvidenceLink();
+    window.addEventListener("hashchange", followEvidenceLink);
+    return () => window.removeEventListener("hashchange", followEvidenceLink);
+  }, [allowEvidenceNavigation, findings]);
   const reviewStops = [
-    { id: "living-room-carpet-0-1", label: "Inspect a change" },
-    { id: "bedroom-carpet-0-0", label: "Inspect a model error" },
+    { id: "bedroom-carpet-0-0", label: "Inspect a change" },
+    { id: "bathroom-bath-0-0", label: "Inspect a model error" },
   ].filter((stop) => findings.some((finding) => finding.id === stop.id));
   // Wait for React to reveal the destination before moving keyboard focus.
   // A fresh target object also makes repeated navigation to the same stop work.
@@ -140,6 +157,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   return (
     <div>
       {banner && <div className="banner">{banner}</div>}
+      {evidenceLinkError && <p role="status">{evidenceLinkError}</p>}
       <h2 style={{ margin: "8px 0" }}>{property}</h2>
       <section className="card review-intro" aria-label="Review your suggested responses">
         <b>Review your suggested responses</b>
@@ -150,6 +168,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
             <button className="btn" aria-expanded={showReply} aria-controls={draftId} onClick={(event) => openDraft(event.currentTarget)}>Open current draft</button>
           </div>
         </div>
+        {rememberSampleResponses && <p className="meta">Start with the bedroom carpet: a planted fair-wear change the model called damage. Select a response, then Continue to case builder to carry that choice into the matching fictional claim. The second stop shows the bath mislabelled as cleaning.</p>}
         <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Agree means provisional agreement, subject to evidence and cost review. Not claimed leaves the item out of your draft.</p>
         <p className="meta">Nothing is sent. The draft updates from all your choices, including items hidden by a filter.</p>
         <p className="meta" data-testid="review-storage-notice" aria-live="polite">
@@ -189,7 +208,8 @@ export default function Board({ property, findings, banner, reply, pdf, remember
           const calculation = f.verdict === "damage" || f.verdict === "missing"
             ? calculateShare(f.verdict, f.tenancyYears, f.ageYears, f.calculationBasis) : null;
           return (
-            <article className="card review-target" key={f.id} data-finding-id={f.id} tabIndex={-1} aria-labelledby={`${inputId}-item ${inputId}-room`} ref={(element) => { if (element) findingRefs.current.set(f.id, element); else findingRefs.current.delete(f.id); }}>
+            <article className="card review-target" key={f.id} data-finding-id={f.id} tabIndex={-1} aria-labelledby={`${inputId}-item ${inputId}-room`} aria-describedby={evidenceTarget === f.id ? `${inputId}-evidence-navigation` : undefined} ref={(element) => { if (element) findingRefs.current.set(f.id, element); else findingRefs.current.delete(f.id); }}>
+              {evidenceTarget === f.id && <p className="meta" id={`${inputId}-evidence-navigation`}>Opened from a public sample finding link. Inspection notes are not imported. Your existing response is unchanged; review and choose it separately below.</p>}
               <span className={`badge v-${f.verdict}`}>{f.verdict === "unresolved" ? "Review" : "Model"}: {LABEL[f.verdict] ?? f.verdict}</span>
               <h3 id={`${inputId}-item`} style={{ marginTop: 8 }}>{f.item}</h3>
               <div className="room" id={`${inputId}-room`}>{f.room}{f.simulated ? " · simulated imagery" : ""}</div>
