@@ -82,6 +82,12 @@ Optional real-browser regression suite: with Python Playwright and its Chromium 
 
 MIT licence.
 
+## Offline fixed-label comparison
+
+`npm run evidence:baseline` compares the saved results with labelling every saved crop **damage**, without model calls or changing artifacts. Both get 4/8 planted item groups with any expected label. Recorded output correctly labels 3/4 planted damage cases versus 4/4, mislabels 1/2 fair-wear groups versus 2/2, and flags 1/9 unplanted crop observations versus 9/9. The recorded unplanted flag is fair wear, not damage; the nine observations span five item groups. One planted group has no saved observation and stays absent in both policies.
+
+This is a trivial fixed-verdict comparator, **not a model ablation or evidence of overall accuracy superiority**. Group scores accept any matching crop, and generated test intent is not independent pixel-level truth. See [the full comparison, denominators and limitations](docs/evidence-lab.md#fixed-label-policy-comparator-not-a-model-ablation). The calculation and immutability checks run in `npm run test:evidence`.
+
 ## What was built when
 Hackathon rules require new work. Before kickoff (15 Oct 2026) I wrote the plan (docs/architecture.md, demo script, data-licence notes) and an empty Next.js skeleton with stub functions. All working functionality — Meta Model API integration, SAM 3.1 parsing, matching, judging, UI, evidence pack — was built from 26 Oct 2026 onwards; see the git history.
 

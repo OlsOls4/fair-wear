@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { analyzeEvidence, buildEvidenceCases, caseId, explainCase, type EvidenceCase } from "../lib/evidence/analysis";
 import { baselineEvidence, evidenceCases, evidenceManifest } from "../lib/evidence/demo";
 import { validateSource, verifySourceBytes } from "../lib/evidence/integrity";
+import { compareDamagePolicy } from "../lib/evidence/policy-baseline";
 import published from "../public/demo/flat-eval.json";
 let count = 0;
 function test(label: string, fn: () => void) { fn(); console.log(`ok ${++count} ${label}`); }
@@ -11,6 +12,29 @@ const main = async () => {
   test("baseline metrics reproduce original evaluation", () => {
     for (const key of ["planted", "detected", "exactVerdict", "damagePlanted", "damageFound", "decoys", "decoysWronglyDamage", "unplantedItemsChecked", "falseAlarms"] as const) assert.equal(baselineEvidence[key], published[key], key);
     assert.equal(baselineEvidence.observationCount, 20); assert.equal(evidenceCases.length, 13);
+  });
+  test("fixed damage policy preserves evidence and exposes both benefits and costs", () => {
+    const original = JSON.stringify(evidenceCases);
+    const { recorded, alwaysDamage } = compareDamagePolicy(evidenceCases);
+    assert.deepEqual(recorded, {
+      observations: 20, retainedObservations: 20, plantedGroups: 8, detectedGroups: 6,
+      exactLabelGroups: 4, damageGroups: 4, damageFound: 3, fairWearGroups: 2,
+      fairWearCalledDamage: 1, unplantedGroups: 5, unplantedObservations: 9,
+      unplantedChangeFlags: 1, unplantedDamageFlags: 0, missingRecordGroups: 1,
+    });
+    assert.deepEqual(alwaysDamage, { ...recorded, detectedGroups: 7, damageFound: 4,
+      fairWearCalledDamage: 2, unplantedChangeFlags: 9, unplantedDamageFlags: 9 });
+    assert.equal(JSON.stringify(evidenceCases), original);
+  });
+  test("fixed policy does not invent missing observations or eligible confidence", () => {
+    const missing = evidenceCases.filter(row => row.id === "bathroom/sealant");
+    const result = compareDamagePolicy(missing);
+    assert.equal(result.alwaysDamage.observations, 0);
+    assert.equal(result.alwaysDamage.missingRecordGroups, 1);
+    assert.equal(result.alwaysDamage.detectedGroups, 0);
+    const invalid = [{ ...evidenceCases[1], observations: [{ ...evidenceCases[1].observations[0], confidence: null }] }];
+    assert.equal(compareDamagePolicy(invalid).alwaysDamage.retainedObservations, 0);
+    assert.equal(compareDamagePolicy([]).alwaysDamage.observations, 0);
   });
   test("all eight planted rows reproduce detection and exactness", () => {
     for (const expected of published.rows) { const row = baselineEvidence.rows.find((r) => r.id === caseId(expected.room, expected.item))!; assert.equal(row.exact, expected.exact); assert.equal(!!row.flagged.length, expected.detected); }

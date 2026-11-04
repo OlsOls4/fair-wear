@@ -21,6 +21,25 @@ The improvement in one failure count is accompanied by substantial loss of corre
 
 The exact-match metric follows the recorded evaluator: any retained observation with the expected label counts as an exact result. It does not demand consensus. A decoy damage flag is counted if any retained observation labels a fair-wear case as damage, even if another observation matches the expected label.
 
+## Fixed-label policy comparator, not a model ablation
+
+Run `npm run evidence:baseline` to calculate this read-only comparison from the same saved observations and planted labels. The comparator replaces every eligible saved crop verdict with `damage`; it does not inspect test labels to choose a prediction. It preserves crop multiplicity, confidence eligibility and absent observations. No model runs, network requests or artifact writes are involved.
+
+| Metric | Recorded output | Always damage |
+| --- | ---: | ---: |
+| Planted item groups with a change flag | 6/8 | 7/8 |
+| Planted item groups with any expected label | 4/8 | 4/8 |
+| Planted damage groups labelled damage | 3/4 | 4/4 |
+| Fair-wear groups labelled damage | 1/2 | 2/2 |
+| Unplanted crop observations with any change flag | 1/9 | 9/9 |
+| Unplanted crop observations labelled damage | 0/9 | 9/9 |
+
+Both policies use 20 saved crop observations. The nine unplanted observations belong to five item groups; the eight planted groups include one with no saved observation (bathroom sealant). The fixed policy cannot recover that missing record. The recorded unplanted flag is **fair wear**, not damage. Counts of unplanted flags are not counts of independent objects or incorrect damage accusations.
+
+This deliberately trivial policy exposes a tradeoff: recorded output produces fewer unplanted flags and fewer fair-wear damage labels, but correctly labels one fewer planted damage case. Both have the same 4/8 any-crop exact-label score. The comparison does not demonstrate overall accuracy superiority, calibration, real-home performance or the contribution of SAM, matching or a particular model. Several crops can disagree within one group; any expected label still counts as an exact result. Generated test intent is not independent pixel-level ground truth. Raw segmentation responses, masks and boxes were not saved, so removing a pipeline component cannot be faithfully replayed from these artifacts.
+
+`lib/evidence/policy-baseline.ts` uses the same deterministic scorer as the inspector. `npm run test:evidence` checks both policies' counts, the five-group/nine-observation distinction, missing records, confidence eligibility and source immutability. Historical results, source manifests and the public UI remain unchanged.
+
 ## Reproducible integrity
 
 `npm run evidence:build` reads the existing files, reproduces the published aggregate metrics, and creates two new files only:
