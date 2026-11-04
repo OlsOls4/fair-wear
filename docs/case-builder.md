@@ -22,7 +22,7 @@ This is deliberately complementary to the recorded Evidence Lab. It gives a judg
 - Personal image preparation/export invokes no fetch. Sample export fetches only fixed same-origin `/demo/flat/crops/` assets with no credentials. Omitted images are never fetched or embedded.
 - HTML export escapes all text, rejects non-embedded image references and SVG, includes no scripts, and applies a restrictive CSP. Photos are embedded so the file works offline. Browser Print → Save as PDF is the PDF route, not a newly generated server-side PDF.
 - Bundle contents may contain personal information. Review before sharing. Nothing is automatically sent or shared.
-- A reload/navigation warning protects unsaved edits where supported. It is not persistence. Exported HTML is read-only and cannot currently be re-imported for editing.
+- A reload/navigation warning protects unsaved edits where supported. It is not persistence. Exported HTML remains read-only. Private cases can separately save and reopen an explicit JSON backup; see [private case backups](case-backup.md).
 
 ## Demo sequence (35–50 seconds)
 

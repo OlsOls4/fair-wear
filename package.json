@@ -14,10 +14,11 @@
     "evidence:check": "node --import tsx scripts/build-evidence-manifest.ts --check",
     "test:evidence": "node --import tsx scripts/test-evidence.ts",
     "test:evidence:dom": "node --import tsx scripts/test-evidence-dom.tsx",
-    "test:case": "node --import tsx scripts/test-case-builder.ts && node --import tsx scripts/test-case-evidence-gaps.ts && node --import tsx scripts/test-image-dimensions.ts && node --import tsx scripts/test-case-builder-dom.tsx && node --import tsx scripts/test-case-navigation-dom.tsx",
-    "check": "npm run typecheck && npm test && npm run test:ui:dom && npm run test:review-session && npm run test:sample-transfer && npm run test:evidence && npm run test:evidence:dom && npm run evidence:check && npm run test:case",
+    "test:case": "node --import tsx scripts/test-case-builder.ts && node --import tsx scripts/test-case-evidence-gaps.ts && node --import tsx scripts/test-image-dimensions.ts && node --import tsx scripts/test-case-builder-dom.tsx && node --import tsx scripts/test-case-navigation-dom.tsx && node --import tsx scripts/test-case-removal-dom.tsx",
+    "check": "npm run typecheck && npm test && npm run test:ui:dom && npm run test:review-session && npm run test:sample-transfer && npm run test:evidence && npm run test:evidence:dom && npm run evidence:check && npm run test:case && npm run test:case-backup",
     "test:sample-transfer": "node --import tsx scripts/test-sample-case-transfer.tsx",
-    "evidence:baseline": "node --import tsx scripts/compare-evidence-policy.ts"
+    "evidence:baseline": "node --import tsx scripts/compare-evidence-policy.ts",
+    "test:case-backup": "node --import tsx scripts/test-case-backup.ts && node --import tsx scripts/test-case-backup-dom.tsx"
   },
   "dependencies": {
     "next": "^15.5.28",

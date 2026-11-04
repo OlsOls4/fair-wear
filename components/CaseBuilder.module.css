@@ -18,3 +18,10 @@
 
 /* Leave room around the editor when explicit mobile navigation reveals it. */
 .editor{scroll-margin-top:16px}.itemHeading h2:focus-visible{outline:3px solid #497343;outline-offset:4px}
+
+.removeDeduction{border-top:1px solid var(--border);padding-top:18px;margin-top:24px}.removeDeduction p{font-size:11px;line-height:1.6;color:#596660;max-width:580px}
+.backup { margin-top:24px; padding:24px; border:1px solid #bccac0; border-radius:16px; display:grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .65fr); gap:28px; }
+.backup h2 { margin:0 0 12px; font-size:24px; }
+.backup p, .backup small { font-size:14px; line-height:1.6; }
+.backupActions { display:flex; flex-direction:column; gap:14px; justify-content:center; }
+@media (max-width:740px) { .backup { grid-template-columns:1fr; padding:18px; gap:12px; } }

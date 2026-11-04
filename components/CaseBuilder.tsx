@@ -5,6 +5,8 @@ import { buildCaseHtml, casePhotoLabels, casePhotoContextNote, caseReply, caseTo
 import { applySampleCaseTransfer, SAMPLE_CASE_TRANSFER_SOURCE, takeSampleCaseTransfer } from "@/lib/sample-case-transfer";
 import { embedCaseImages, localCaseImage } from "@/lib/case-images";
 import { evidenceRows, evidenceRequests, EVIDENCE_DISCLAIMER, EVIDENCE_STATUS_LABELS, type EvidenceStatus } from "@/lib/case-evidence-gaps";
+import { prepareBackupImages } from "@/lib/case-backup-images";
+import { MAX_BACKUP_BYTES, parseCaseBackup, serializeCaseBackup } from "@/lib/case-backup";
 import styles from "./CaseBuilder.module.css";
 import { confidenceLabel } from "@/lib/findings";
 
@@ -26,9 +28,13 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   const editorRef = useRef<HTMLElement>(null);
   const editorHeadingRef = useRef<HTMLHeadingElement>(null);
   const [editorNavigation, setEditorNavigation] = useState(0);
-  // Only explicit list navigation moves focus, never initial load or field edits.
+  const removedItemFocus = useRef(false);
+  // Explicit list navigation or removal moves focus, never initial load or field edits.
   useEffect(() => {
-    if (!editorNavigation || !window.matchMedia?.("(max-width: 740px)").matches) return;
+    if (!editorNavigation) return;
+    const afterRemoval = removedItemFocus.current;
+    removedItemFocus.current = false;
+    if (!afterRemoval && !window.matchMedia?.("(max-width: 740px)").matches) return;
     editorHeadingRef.current?.focus({ preventScroll: true });
     editorRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
   }, [editorNavigation]);
@@ -83,8 +89,23 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   }
   function addItem() {
     if (items.length >= 12) return;
-    const next = emptyCaseItem(`claim-${nextId.current++}`);
+    let id: string;
+    do { id = `claim-${nextId.current++}`; } while (items.some((item) => item.id === id));
+    const next = emptyCaseItem(id);
     setItems((items) => [...items, next]); selectItem(next.id); setDirty(true);
+  }
+  function removeSelectedItem() {
+    if (mode !== "personal" || busy) return;
+    const label = selected.item.trim() || "this deduction";
+    if (!window.confirm(`Remove ${label} from this case? Its notes, photos and evidence choices will be cleared from this page. Existing downloads will not change. To keep it for later, cancel and choose “Leave out of response” instead.`)) return;
+    const index = items.findIndex((item) => item.id === selected.id);
+    const remaining = items.filter((item) => item.id !== selected.id);
+    const next = remaining.length ? remaining : [emptyCaseItem(`claim-${nextId.current++}`)];
+    setItems(next);
+    removedItemFocus.current = true;
+    selectItem(next[Math.min(index, next.length - 1)].id);
+    setDirty(true);
+    setStatus(remaining.length ? "Deduction removed. Your other deductions are unchanged. Existing downloads have not changed." : "Deduction removed. A new blank deduction is ready. Existing downloads have not changed.");
   }
   async function choosePhoto(event: React.ChangeEvent<HTMLInputElement>, visit: "before" | "after") {
     const file = event.target.files?.[0], id = selected.id; event.target.value = "";
@@ -106,9 +127,39 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
     } catch (error) { setStatus(error instanceof Error ? error.message : "The bundle could not be prepared. Your work is still on this page."); }
     finally { setBusy(false); }
   }
+  function saveBackup() {
+    setBusy(true);
+    try {
+      const source = serializeCaseBackup(document);
+      const url = URL.createObjectURL(new Blob([source], { type: "application/json" }));
+      const link = window.document.createElement("a"); link.href = url; link.download = "fair-wear-private-case.fairwear.json";
+      window.document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      setStatus("Editable backup prepared for download. Check that your browser saved it before leaving. It includes all items, even those left out of your response, and is not encrypted. Keep it private. Nothing was uploaded or sent.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Could not prepare the backup. Your case is still here."); }
+    finally { setBusy(false); }
+  }
+  async function reopenBackup(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; event.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_BACKUP_BYTES) { setStatus("Choose a Fair Wear JSON backup up to 32 MB. Your current case has not changed."); return; }
+    setBusy(true); setStatus("Checking the backup locally. Nothing is uploading.");
+    try {
+      const validated = parseCaseBackup(await file.text());
+      const restored = await prepareBackupImages(validated);
+      if (dirty && !window.confirm(mode === "personal"
+        ? "Replace the case on this page with this backup? Save an editable backup of your current work first if you want to keep it."
+        : "Replace this sample case with the private backup? Export the current evidence bundle first if you want a read-only copy. Edited sample cases cannot be saved as editable backups.")) {
+        setStatus("Reopening cancelled. Your current case has not changed."); return;
+      }
+      setMode("personal"); setTitle(restored.title); setPhotoContext(restored.photoContext!); setItems(restored.items); setSelectedId(restored.items[0].id);
+      setDirty(true); setShowReply(false); setTransferredCount(null); setHandoffError("");
+      setStatus("Private case reopened locally. Review its contents: a backup can be edited and does not verify photos, dates, notes or responsibility. Save a new backup after further changes. Nothing was uploaded or analysed.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Could not read this backup. Your current case has not changed."); }
+    finally { setBusy(false); }
+  }
   const amountInvalid = selected.claimPounds.trim() !== "" && moneyPence(selected.claimPounds) === null;
   return <main id="main-content" className={styles.page}>
-    <header className={styles.hero}><div><p className={styles.kicker}>YOUR EVIDENCE. YOUR RESPONSE.</p><h1>A deduction is a claim.<br /><em>Build your response.</em></h1><p className={styles.lede}>Connect each proposed charge to the evidence, record what you question, and take away a bundle that reflects your choices.</p></div><div className={styles.privacy}><span className={styles.privacyIcon} aria-hidden="true">⌂</span><b>Private by design</b><p>Your photos and notes stay in this browser tab. No uploads, no model calls, no account.</p><span>Export before leaving: nothing is saved automatically.</span></div></header>
+    <header className={styles.hero}><div><p className={styles.kicker}>YOUR EVIDENCE. YOUR RESPONSE.</p><h1>A deduction is a claim.<br /><em>Build your response.</em></h1><p className={styles.lede}>Connect each proposed charge to the evidence, record what you question, and take away a bundle that reflects your choices.</p></div><div className={styles.privacy}><span className={styles.privacyIcon} aria-hidden="true">⌂</span><b>Private by design</b><p>Your photos and notes stay in this browser tab. No uploads, no model calls, no account.</p><span>Save a backup or export before leaving. Nothing is saved automatically.</span></div></header>
     <section className={styles.modeBar} aria-label="Choose sample or private case"><div><b>{mode === "sample" ? "A fictional demand. Real recorded model outputs." : "Your case, kept in this tab."}</b><p>{mode === "sample" ? "Try three example deductions. The photos are generated; the £910 demand is invented for this demonstration." : "Add your own claim details and photos. This is a manual evidence organiser; it does not analyse or classify your files."}</p></div><button className={styles.secondary} disabled={busy} onClick={() => changeMode(mode === "sample" ? "personal" : "sample")}>{mode === "sample" ? "Start a private case" : "Return to example"} <Arrow /></button></section>
     {mode === "personal" && <fieldset disabled={busy} className={styles.fields}><legend>Photo context for this case (optional)</legend><label>Photo labels<select aria-label="Photo labels for this case" aria-describedby="photo-context-help" value={photoContext} onChange={(event) => { setPhotoContext(event.target.value as PhotoContext); setDirty(true); setStatus(""); }}><option value="tenancy">Move-in/Move-out (tenancy comparison)</option><option value="other">Before/After (other comparison)</option></select></label><p id="photo-context-help">{casePhotoContextNote(document)} This applies to every photo pair in this case. It only changes photo labels, not evidence checklist statuses, cost assumptions or responses. Keep originals and explain the comparison in your review notes.</p></fieldset>}
     {handoffError && <p role="status" className={styles.status}>{handoffError}</p>}
@@ -141,9 +192,14 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
           </fieldset>}
         </section>
         <details className={styles.assumptions}><summary>Explore cost assumptions <span>Optional, never inferred by AI</span></summary><fieldset disabled={busy} className={styles.fields}><legend className={styles.srOnly}>Cost assumptions</legend><label>Type of proposed cost<select value={selected.costType} aria-label="Type of proposed cost" onChange={(e) => patch(selected.id, { costType: e.target.value as CostType })}><option value="unknown">Not specified</option><option value="replacement">Replacement</option><option value="repair">Repair</option><option value="cleaning">Cleaning</option></select></label>{selected.costType === "replacement" ? <><p>Try a simple remaining-value calculation with your own assumptions. No age, lifespan or quality is filled in from an item label.</p><div className={styles.fieldRow}><label>Replacement cost (£)<input aria-label="Replacement cost in pounds" inputMode="decimal" value={selected.replacementCost} maxLength={15} onChange={(e) => patch(selected.id, { replacementCost: e.target.value })} placeholder="Unknown" /></label><label>Age at move-in (years)<input aria-label="Age at move-in in years" inputMode="decimal" value={selected.ageAtMoveIn} maxLength={8} onChange={(e) => patch(selected.id, { ageAtMoveIn: e.target.value })} placeholder="Unknown" /></label></div><div className={styles.fieldRow}><label>Tenancy length (years)<input aria-label="Tenancy length in years" inputMode="decimal" value={selected.tenancyYears} maxLength={8} onChange={(e) => patch(selected.id, { tenancyYears: e.target.value })} placeholder="Unknown" /></label><label>Expected useful life (years)<input aria-label="Expected useful life in years" inputMode="decimal" value={selected.usefulLife} maxLength={8} onChange={(e) => patch(selected.id, { usefulLife: e.target.value })} placeholder="Unknown" /></label></div><label>Quality and starting-condition basis<input value={selected.qualityBasis} aria-label="Quality and starting-condition basis" maxLength={500} onChange={(e) => patch(selected.id, { qualityBasis: e.target.value })} placeholder="e.g. invoice, inventory or an explicitly unverified assumption" /></label><div className={styles.calculation} role="status" data-testid="replacement-illustration">{illustration.status === "illustrative" ? <><span>Remaining-value illustration</span><strong>{pounds(illustration.remainingPence)}</strong><p>{pounds(illustration.costPence)} × max(0, 1 − ({illustration.age} + {illustration.tenancy}) ÷ {illustration.life})</p><small>Unverified assumptions, not a suggested settlement or tenant liability. This does not change your claimed amount, response or totals.</small></> : <p>No estimate yet. {illustration.status === "needs_inputs" ? `Supply: ${illustration.missing.join(", ")}.` : ""}</p>}</div></> : <p>No replacement-life calculation applies to this selection. Evidence of cost, cause and responsibility still needs review.</p>}</fieldset></details>
+        {mode === "personal" && <div className={styles.removeDeduction}><button type="button" className={styles.secondary} disabled={busy} onClick={removeSelectedItem}>Remove this deduction</button><p>Clears this deduction’s notes, photos and evidence choices from the case. To keep them but exclude the deduction from exports, choose “Leave out of response” above.</p></div>}
       </section>
     </div>
     <section className={styles.export} aria-label="Prepare current evidence bundle"><div><p className={styles.kicker}>03 / TAKE YOUR REVIEW WITH YOU</p><h2>Your choices, carried through.</h2><p>The bundle contains your current response, claim amounts and side-by-side photos. Original model suggestions remain separately labelled.</p><label>Bundle title<input value={title} maxLength={200} disabled={busy} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} /></label></div><div className={styles.exportActions}><button className={styles.primary} onClick={exportBundle} disabled={busy || !totals.included}>{busy ? "Preparing…" : "Export current evidence bundle"} <Arrow down /></button><button className={styles.secondary} aria-expanded={showReply} aria-controls="case-current-reply" onClick={() => setShowReply(!showReply)}>{showReply ? "Hide" : "Preview"} response draft</button><small>A self-contained HTML file. Open it and use Print → Save as PDF. Nothing is sent. Check photos and notes for personal information before sharing.</small>{!totals.included && <small>Add at least one included item to export.</small>}</div></section>
+    <section className={styles.backup} aria-labelledby="case-backup-title">
+      <div><h2 id="case-backup-title">Pick up where you left off</h2><p>Save a private case as an editable JSON backup, then reopen it here on a later visit. No account or upload needed. The evidence HTML above is read-only and cannot be reopened for editing.</p><p><strong>Keep this file private.</strong> It is not encrypted and includes all deductions, notes and display photos, including items left out of your response. It is not an evidence pack to share. Keep original photos separately.</p></div>
+      <div className={styles.backupActions}>{mode === "personal" ? <button className={styles.secondary} disabled={busy} onClick={saveBackup}>Save editable backup <Arrow down /></button> : <p>Saving is available after you start a private case.</p>}<label className={styles.fileLabel}>Reopen private case<input type="file" aria-label="Reopen private case backup" accept=".json,application/json" disabled={busy} onChange={reopenBackup} /></label><small>Fair Wear JSON backups only · up to 32 MB. Opening replaces the case on this page after confirmation if you have edits. No automatic saving.</small></div>
+    </section>
     <p role="status" className={styles.status}>{status}</p>
     {showReply && <section id="case-current-reply" className={styles.draft}><h2>Current draft, not sent</h2><pre>{draft}</pre></section>}
     <footer className={styles.footer}><p>Fair Wear is a prototype for organising evidence. Photos alone do not establish age, cause or responsibility. This is not legal advice.</p><p>{mode === "sample" ? "Generated test images · Real recorded model outputs · Fictional proposed amounts" : "No uploads · No AI analysis of personal files · Keep your originals separately"}</p></footer>
