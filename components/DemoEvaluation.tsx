@@ -10,8 +10,8 @@ export default function DemoEvaluation() {
       <div><strong>{ev.decoysWronglyDamage}<span>/{ev.decoys}</span></strong><span>Fair-wear decoys called damage</span></div>
       <div><strong>{ev.falseAlarms}<span>/{ev.unplantedItemsChecked}</span></strong><span>False alarms on unplanted items</span></div>
     </div>
-    <p className="meta">These are results on generated scenes, not accuracy estimates for real homes or determinations of tenant responsibility. The known errors below are also flagged on matching finding cards.</p>
-    <details className="evaluation-errors"><summary>Inspect the known errors and missed changes <span aria-hidden="true">+</span></summary><ul>
+    <p className="meta">These are results on generated scenes, not accuracy estimates for real homes or determinations of tenant responsibility. The disagreements with planted test intent are also flagged on matching finding cards. Planted intent is not independent annotation of the generated pixels.</p>
+    <details className="evaluation-errors"><summary>Inspect label disagreements and missed planted changes <span aria-hidden="true">+</span></summary><ul>
       {ev.rows.filter((row) => !row.exact).map((row) => <li key={`${row.room}/${row.item}`}><b>{row.room} {row.item}:</b> planted {row.planted.replaceAll("_", " ")}; {row.got === "not_segmented" ? "not segmented, so no finding card was produced" : `model reported ${row.got.replaceAll("_", " ")}`}.</li>)}
       {ev.falseAlarmItems.map((item) => <li key={item}><b>False alarm:</b> {item.replaceAll("_", " ")}.</li>)}
     </ul></details>

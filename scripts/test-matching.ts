@@ -30,6 +30,8 @@ function check(before: Item[], after: Item[], matched: number, unresolved: numbe
   for (const bs of permutations(before)) for (const as of permutations(after)) assert.deepEqual(canonical(matchItems(bs, as)), canonical(expected));
   return expected;
 }
+const qualified = { property: "Offline fixture", context: "tenancy", tenancyYears: 2,
+  rooms: [{ room: "bedroom", moveInUrl: "in", moveOutUrl: "out", moveInDate: "2022-01-01", moveOutDate: "2024-01-01", provenance: "user_supplied_records", sameRoomConfirmed: true, sameItemsConfirmed: true }] };
 async function main() {
   check([], [], 0, 0);
   check([b("b")], [a("a")], 1, 0);
@@ -40,13 +42,29 @@ async function main() {
   // Track IDs are visit-local: even equal IDs cannot break a tie.
   check([b("same"), b("other")], [a("same")], 0, 3);
   check([b("b", { box: box(0) })], [a("a1", { box: box(0) }), a("a2", { box: box(0.1) })], 0, 3);
-  // Inclusive tolerance boundary (.25 * .2 = .05).
+  // Unregistered positions never disambiguate, even with a large separation.
   check([b("b", { box: box(0) })], [a("a1", { box: box(0) }), a("a2", { box: box(.2) })], 0, 3);
-  check([b("b1", { box: box(0) }), b("b2", { box: box(.9) })], [a("a1", { box: box(0) }), a("a2", { box: box(.9) })], 2, 0);
+  check([b("b1", { box: box(0) }), b("b2", { box: box(.9) })], [a("a1", { box: box(0) }), a("a2", { box: box(.9) })], 0, 4);
+  // Camera reversal swaps physical objects' frame positions. IDs here name the
+  // fixture objects, but are not supplied as cross-visit identity evidence.
+  const reversedBefore = [b("chair-A-before", { box: box(0) }), b("chair-B-before", { box: box(.9) })];
+  const reversedAfter = [a("chair-A-after", { box: box(.9) }), a("chair-B-after", { box: box(0) })];
+  check(reversedBefore, reversedAfter, 0, 4);
+  // Identical embeddings leave position as the only distinction: abstain.
+  check(reversedBefore.map(i => ({ ...i, embedding: [1, 0] })), reversedAfter.map(i => ({ ...i, embedding: [1, 0] })), 0, 4);
+  const appearance = check([
+    b("A-before", { box: box(0), embedding: [1, 0] }), b("B-before", { box: box(.9), embedding: [0, 1] }),
+  ], [a("A-after", { box: box(.9), embedding: [1, 0] }), a("B-after", { box: box(0), embedding: [0, 1] })], 2, 0);
+  assert.deepEqual(appearance.pairs.map(p => [p.before?.id, p.after?.id]), [["A-before", "A-after"], ["B-before", "B-after"]]);
+  // Close and boundary appearance scores remain ties under the explicit margin.
+  for (const similarity of [.975, .95]) check([b("b", { embedding: [1, 0] })], [
+    a("a1", { embedding: [1, 0] }), a("a2", { embedding: [similarity, Math.sqrt(1 - similarity ** 2)] }),
+  ], 0, 3);
+  check([b("unique", { box: box(0) })], [a("unique", { box: box(.9) })], 1, 0);
   const contention = check([b("b1", { embedding: [1, 0] }), b("b2", { embedding: [.8, .6] })], [a("a1", { embedding: [1, 0] }), a("a2", { embedding: [0, 1] })], 1, 2);
   assert.deepEqual(contention.pairs.map(p => [p.before?.id, p.after?.id]), [["b1", "a1"]]);
-  check([b("b1", { box: box(0) }), b("b2", { box: box(.9) })], [a("a1", { box: box(0) })], 1, 1);
-  check([b("b1", { box: box(0) })], [a("a1", { box: box(0) }), a("a2", { box: box(.9) })], 1, 1);
+  check([b("b1", { box: box(0) }), b("b2", { box: box(.9) })], [a("a1", { box: box(0) })], 0, 3);
+  check([b("b1", { box: box(0) })], [a("a1", { box: box(0) }), a("a2", { box: box(.9) })], 0, 3);
   const rooms = check([b("b")], [a("a", { room: "kitchen" })], 0, 0);
   assert.deepEqual(rooms.pairs.map(changeStatus), ["unresolved", "unresolved"]);
   check([b("b", { label: "carpet" })], [a("a", { label: "rug" })], 1, 0);
@@ -62,24 +80,28 @@ async function main() {
     judge: async pair => { calls.push(pair); return { pair, verdict: "no_change", confidence: 0, description: "offline", guidanceRefs: [] }; },
     buildPack: async (property, findings) => ({ property, findings, generatedAt: "offline", replyDraft: "Draft" }),
   });
-  const response = await handler(new Request("http://localhost/api/analyze", { method: "POST", body: JSON.stringify({ rooms: [{ room: "bedroom", moveInUrl: "in", moveOutUrl: "out" }] }) }));
+  const response = await handler(new Request("http://localhost/api/analyze", { method: "POST", body: JSON.stringify(qualified) }));
   const data = await response.json();
   assert.equal(calls.length, 3); // one supported match, two genuine one-sided observations
   assert(calls.every(p => p.label !== "chair"));
   assert.equal(data.pack.correspondence[0].unresolved.length, 4);
   assert.match(data.pack.replyDraft, /Correspondence needs review/);
   const allAmbiguous = createAnalyzeHandler({ mock: false,
-    extractItems: async (_, visit) => visit === "move_in" ? tiedBefore : tiedAfter,
+    extractItems: async (_, visit) => visit === "move_in" ? reversedBefore : reversedAfter,
     judge: async () => { throw new Error("Ambiguous candidates must not invoke judge"); },
     buildPack: async () => { throw new Error("All-ambiguous input must not request a model-generated pack"); },
   });
-  assert.equal((await allAmbiguous(new Request("http://localhost", { method: "POST", body: JSON.stringify({ rooms: [{ room: "bedroom" }] }) }))).status, 200);
+  assert.equal((await allAmbiguous(new Request("http://localhost", { method: "POST", body: JSON.stringify(qualified) }))).status, 200);
+  const reversedPlan = planDemoCorrespondence("bedroom", reversedBefore, reversedAfter);
+  assert.equal(reversedPlan.pairs.length, 0);
+  assert.equal(reversedPlan.report.unresolved.length, 4);
+  assert.equal(reversedPlan.report.judgedPairs, 0);
   const failing = createAnalyzeHandler({ mock: false,
     extractItems: async (_, visit) => [item(visit, visit)],
     judge: async () => { throw new JudgeValidationError("offline invalid response"); },
     buildPack: async () => { throw new Error("Failed judgement must not build a pack"); },
   });
-  const failure = await failing(new Request("http://localhost", { method: "POST", body: JSON.stringify({ rooms: [{ room: "bedroom" }] }) }));
+  const failure = await failing(new Request("http://localhost", { method: "POST", body: JSON.stringify(qualified) }));
   assert.equal(failure.status, 502);
   assert.equal("pack" in await failure.json(), false);
   const { pairs, report } = planDemoCorrespondence("bedroom", before, after);

@@ -36,7 +36,7 @@ with sync_playwright() as p:
  assert page.evaluate('(key)=>sessionStorage.getItem(key)',TRANSFER) is None
  assert page.locator('button[aria-pressed]').count()==3
  ok('explicit source CTA carries three mappings once, strips URL marker and adds no rows')
- expect(page.get_by_test_id('imported-review-response')).to_contain_text('sample review response: Agree')
+ expect(page.get_by_test_id('imported-review-response')).to_contain_text('sample review response: Discuss after evidence')
  expect(page.get_by_label('Discuss after evidence',exact=True)).to_be_checked()
  expect(page.get_by_text('The evaluation disagrees.',exact=True)).to_be_visible()
  page.get_by_label('What should your response say?').fill('REVIEW_SENTINEL_NOT_SAVED')
@@ -45,7 +45,7 @@ with sync_playwright() as p:
  with page.expect_download() as info:page.get_by_role('button',name='Export current evidence bundle').click()
  path=OUT/'current-transfer-export.html';info.value.save_as(str(path));html=path.read_text()
  assert 'REVIEW_SENTINEL_NOT_SAVED' in html and 'Original verdict: damage' in html and 'Starting choice from sample review' in html
- assert 'Your selected sample review response: Agree' in html and '£123.45' in html and 'Replace bath' not in html
+ assert 'Your selected sample review response: Discuss after evidence' in html and '£123.45' in html and 'Replace bath' not in html
  assert 'No amount is agreed in this draft.' in html
  assert page.evaluate('(key)=>sessionStorage.getItem(key)',KEY)==board
  assert page.evaluate('()=>JSON.stringify({...sessionStorage,...localStorage})').find('REVIEW_SENTINEL_NOT_SAVED')==-1

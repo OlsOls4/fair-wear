@@ -1,17 +1,19 @@
 "use client";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { DECISIONS, defaultDecision, defaultDecisionReason, type Decision } from "@/lib/decisions";
+import { DECISIONS, DECISION_LABELS, defaultDecision, defaultDecisionReason, type Decision } from "@/lib/decisions";
 import { replyDraft } from "@/lib/reply";
 import { confidenceLabel, type F } from "@/lib/findings";
 import { calculateShare } from "@/lib/pipeline/guidance";
 import { readSampleResponses, saveSampleResponses } from "@/lib/sample-review-session";
 import { prepareSampleCaseTransfer, SAMPLE_CASE_TRANSFER_KEY } from "@/lib/sample-case-transfer";
+import { SAMPLE_CASE_EXAMPLES } from "@/lib/case-builder";
 import { evidenceFindingFromHash } from "@/lib/evidence-navigation";
 import EvidencePair from "./EvidencePair";
 
 export type { F } from "@/lib/findings";
 export { replyDraft } from "@/lib/reply";
 const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear & tear", cleaning: "Cleaning", no_change: "No change", missing: "Missing", added: "Added", unresolved: "Unresolved" };
+const transferableIds = new Set<string>(SAMPLE_CASE_EXAMPLES.map((item) => item.id));
 const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved", "no_change"];
 
 export default function Board({ property, findings, banner, reply, pdf, rememberSampleResponses = false, allowEvidenceNavigation = false }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string; rememberSampleResponses?: boolean; allowEvidenceNavigation?: boolean }) {
@@ -24,6 +26,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   const [copyStatus, setCopyStatus] = useState("");
   const [transferError, setTransferError] = useState("");
   const [transferring, setTransferring] = useState(false);
+  const [handoffCleanupFailed, setHandoffCleanupFailed] = useState(false);
   const transferInFlight = useRef(false);
   const [navigationTarget, setNavigationTarget] = useState<{ findingId?: string } | null>(null);
   const [evidenceTarget, setEvidenceTarget] = useState<string | null>(null);
@@ -61,13 +64,29 @@ export default function Board({ property, findings, banner, reply, pdf, remember
         ? "This sample finding link is invalid or no longer available. All findings remain available below; your responses have not changed." : "");
       if (id) { setFilter("all"); setNavigationTarget({ findingId: id }); }
     }
+    // Re-activating the current fragment does not emit hashchange. Treat a
+    // normal same-document anchor activation as a fresh reveal/focus request.
+    function repeatEvidenceLink(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const anchor = event.target instanceof window.Element ? event.target.closest("a[href]") : null;
+      if (!(anchor instanceof window.HTMLAnchorElement) || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
+      let destination: URL;
+      try { destination = new URL(anchor.href, window.location.href); } catch { return; }
+      if (destination.origin !== window.location.origin || destination.pathname !== window.location.pathname || destination.search !== window.location.search || destination.hash !== window.location.hash) return;
+      if (!evidenceFindingFromHash(destination.hash, findings.map((finding) => finding.id))) return;
+      followEvidenceLink();
+    }
     followEvidenceLink();
     window.addEventListener("hashchange", followEvidenceLink);
-    return () => window.removeEventListener("hashchange", followEvidenceLink);
+    document.addEventListener("click", repeatEvidenceLink);
+    return () => {
+      window.removeEventListener("hashchange", followEvidenceLink);
+      document.removeEventListener("click", repeatEvidenceLink);
+    };
   }, [allowEvidenceNavigation, findings]);
   const reviewStops = [
     { id: "bedroom-carpet-0-0", label: "Inspect a change" },
-    { id: "bathroom-bath-0-0", label: "Inspect a model error" },
+    { id: "bathroom-bath-0-0", label: "Inspect a label mismatch" },
   ].filter((stop) => findings.some((finding) => finding.id === stop.id));
   // Wait for React to reveal the destination before moving keyboard focus.
   // A fresh target object also makes repeated navigation to the same stop work.
@@ -101,16 +120,28 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   findings.forEach((f) => decisionCounts[decisions[f.id] ?? defaultDecision(f)]++);
   const shown = findings.filter((f) => filter === "all" || f.verdict === filter).sort((a, b) => ORDER.indexOf(a.verdict) - ORDER.indexOf(b.verdict));
   const draft = useMemo(() => replyDraft(property, findings, decisions), [property, findings, decisions]);
-  function choose(id: string, decision: Decision) {
-    transferInFlight.current = false; setTransferring(false);
-    const next = { ...decisions, [id]: decision };
-    setDecisions(next);
-    if (rememberSampleResponses) {
-      try { saveSampleResponses(window.sessionStorage, next); window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY); setSampleStorage("ready"); setResetStorageFailed(false); }
-      catch { setSampleStorage("unavailable"); }
+  function discardPreparedHandoff() {
+    // A failed review save must not skip invalidating an older navigation snapshot.
+    try {
+      window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY);
+      setHandoffCleanupFailed(false);
+    } catch {
+      setHandoffCleanupFailed(true);
     }
+  }
+  function choose(id: string, decision: Decision | undefined) {
+    transferInFlight.current = false; setTransferring(false);
+    const next = { ...decisions };
+    if (decision === undefined) delete next[id];
+    else next[id] = decision;
+    setDecisions(next);
     setCopyStatus("");
     setTransferError("");
+    if (rememberSampleResponses) {
+      try { saveSampleResponses(window.sessionStorage, next); setSampleStorage("ready"); setResetStorageFailed(false); }
+      catch { setSampleStorage("unavailable"); }
+      discardPreparedHandoff();
+    }
   }
   function resetResponses() {
     transferInFlight.current = false; setTransferring(false);
@@ -118,8 +149,9 @@ export default function Board({ property, findings, banner, reply, pdf, remember
     setCopyStatus("");
     setTransferError("");
     if (rememberSampleResponses) {
-      try { saveSampleResponses(window.sessionStorage, {}); window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY); setSampleStorage("ready"); setResetStorageFailed(false); }
+      try { saveSampleResponses(window.sessionStorage, {}); setSampleStorage("ready"); setResetStorageFailed(false); }
       catch { setSampleStorage("unavailable"); setResetStorageFailed(true); }
+      discardPreparedHandoff();
     }
   }
   function continueToCase() {
@@ -128,6 +160,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
     try {
       // Snapshot current in-memory choices, including edits after a storage failure.
       const destination = prepareSampleCaseTransfer(window.sessionStorage, decisions, window.crypto.randomUUID());
+      setHandoffCleanupFailed(false); setTransferError("");
       window.location.assign(destination);
     } catch {
       transferInFlight.current = false; setTransferring(false);
@@ -138,8 +171,10 @@ export default function Board({ property, findings, banner, reply, pdf, remember
     transferInFlight.current = false; setTransferring(false);
     try {
       window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY);
+      setHandoffCleanupFailed(false);
       setTransferError("Prepared handoff cleared. You can continue again. If navigation already started, the case will open without imported choices.");
     } catch {
+      setHandoffCleanupFailed(true);
       setTransferError("The prepared handoff could not be cleared. It may still be imported if navigation continues. Your review choices are unchanged.");
     }
   }
@@ -168,8 +203,8 @@ export default function Board({ property, findings, banner, reply, pdf, remember
             <button className="btn" aria-expanded={showReply} aria-controls={draftId} onClick={(event) => openDraft(event.currentTarget)}>Open current draft</button>
           </div>
         </div>
-        {rememberSampleResponses && <p className="meta">Start with the bedroom carpet: a planted fair-wear change the model called damage. Select a response, then Continue to case builder to carry that choice into the matching fictional claim. The second stop shows the bath mislabelled as cleaning.</p>}
-        <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Agree means provisional agreement, subject to evidence and cost review. Not claimed leaves the item out of your draft.</p>
+        {rememberSampleResponses && <p className="meta">Start with the bedroom carpet: a planted fair-wear change the model called damage. Change or confirm its response, then Continue to case builder to carry that choice into the matching fictional claim. The second stop shows the bath mislabelled as cleaning.</p>}
+        <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Discuss after evidence does not accept responsibility or a charge. Untouched suggestions appear as review pending in the draft. Not claimed leaves the item out of your draft.</p>
         <p className="meta">Nothing is sent. The draft updates from all your choices, including items hidden by a filter.</p>
         <p className="meta" data-testid="review-storage-notice" aria-live="polite">
           {rememberSampleResponses ? sampleStorage === "loading"
@@ -181,16 +216,19 @@ export default function Board({ property, findings, banner, reply, pdf, remember
                 : "Tab storage is unavailable. Your latest choices are kept only on this page and may be lost when you leave or reload. Download the current draft before leaving."
             : "Your selections are kept only on this page. Download your current draft before leaving or reloading."}
         </p>
+        <p className="meta" role="status" data-testid="review-choice-count">{Object.keys(decisions).length} of {findings.length} responses explicitly selected. Counts below include untouched suggestions.</p>
         <div className="row" aria-live="polite" data-testid="decision-summary">
-          {DECISIONS.map((decision) => <span key={decision}>{decision}: <b>{decisionCounts[decision]}</b></span>)}
+          {DECISIONS.map((decision) => <span key={decision}>{DECISION_LABELS[decision]}: <b>{decisionCounts[decision]}</b></span>)}
         </div>
         <button className="chip" disabled={sampleStorage === "loading" || (!Object.keys(decisions).length && !resetStorageFailed)} onClick={resetResponses}>Reset suggested responses</button>
         {rememberSampleResponses && <section className="sample-case-handoff" aria-label="Carry sample choices into a case">
           <h3>Turn your review into an evidence bundle</h3>
-          <p>Continue with three fictional claims: bedroom carpet, kitchen oven and bathroom bath. Only responses you changed for these three items carry over. Other findings stay on this board; untouched suggestions are not treated as your choices.</p>
-          <p className="meta">Dispute becomes Question this deduction. Agree becomes Discuss after evidence. Not claimed becomes Leave out of response. Untouched claims start as Question this deduction. No charge is accepted. This starts a fresh sample case, not a private case. A one-time handoff saves only sample references and choices in this tab until the case opens; no photos or notes are copied.</p>
+          <p>Continue with three fictional claims: bedroom carpet, kitchen oven and bathroom bath. Only responses you changed or explicitly confirmed for these three items carry over. Other findings stay on this board; untouched suggestions are not treated as your choices.</p>
+          <p className="meta">Dispute becomes Question this deduction. Discuss after evidence stays Discuss after evidence. Not claimed becomes Leave out of response. Untouched claims start as Question this deduction. No charge is accepted. This starts a fresh sample case, not a private case. A one-time handoff saves only sample references and choices in this tab until the case opens; no photos or notes are copied.</p>
+          <p className="meta" role="status" data-testid="sample-choice-progress">{Object.keys(decisions).filter((id) => transferableIds.has(id)).length} of 3 sample responses ready to carry over. Confirm an unchanged suggestion on its card, or change its response.</p>
           <button className="btn" disabled={sampleStorage === "loading" || transferring} onClick={continueToCase}>Continue to case builder</button>
-          {transferring && <button className="chip" onClick={cancelHandoff}>Cancel handoff</button>}
+          {(transferring || handoffCleanupFailed) && <button className="chip" onClick={cancelHandoff}>Cancel handoff</button>}
+          {handoffCleanupFailed && <p role="alert">The earlier handoff could not be cleared. Earlier choices may still be imported if navigation continues. Use Cancel handoff to retry clearing it.</p>}
           <p role="status">{transferError}</p>
         </section>}
       </section>
@@ -228,10 +266,22 @@ export default function Board({ property, findings, banner, reply, pdf, remember
               <div className="meta">Model-reported confidence {confidenceLabel(f.confidence)}. This score is uncalibrated, not a probability of correctness or responsibility.</div>
               <div className="decision-control">
                 <label id={`${inputId}-label`} htmlFor={`${inputId}-response`}>Your response</label>
-                <select id={`${inputId}-response`} aria-labelledby={`${inputId}-label ${inputId}-room ${inputId}-item`} aria-describedby={`${inputId}-reason ${inputId}-reference`} disabled={rememberSampleResponses && sampleStorage === "loading"} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
-                  {DECISIONS.map((decision) => <option key={decision}>{decision}</option>)}
+                <select id={`${inputId}-response`} aria-labelledby={`${inputId}-label ${inputId}-room ${inputId}-item`} aria-describedby={`${inputId}-reason ${inputId}-reference ${inputId}-confirmation`} disabled={rememberSampleResponses && sampleStorage === "loading"} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
+                  {DECISIONS.map((decision) => <option key={decision} value={decision}>{DECISION_LABELS[decision]}</option>)}
                 </select>
-                <div className="meta" id={`${inputId}-reason`}>{selected !== suggested ? `You changed the suggested response (${suggested}). ` : ""}{defaultDecisionReason(f)}</div>
+                <div>
+                  {selected === suggested && <button type="button" className="chip"
+                    disabled={rememberSampleResponses && sampleStorage === "loading"}
+                    aria-describedby={`${inputId}-confirmation ${inputId}-reference`}
+                    aria-label={`${Object.hasOwn(decisions, f.id) ? "Undo confirmation" : `Confirm ${DECISION_LABELS[selected]}`}: ${f.room} ${f.item}, ${DECISION_LABELS[selected]}`}
+                    onClick={() => choose(f.id, Object.hasOwn(decisions, f.id) ? undefined : selected)}>
+                    {Object.hasOwn(decisions, f.id) ? "Undo confirmation" : `Confirm ${DECISION_LABELS[selected]}`}
+                  </button>}
+                  <p className="meta" id={`${inputId}-confirmation`} role="status">{Object.hasOwn(decisions, f.id)
+                    ? `Explicit response: ${DECISION_LABELS[selected]} (${selected === suggested ? "confirmed suggestion" : "changed response"}).${rememberSampleResponses && transferableIds.has(f.id) ? " Ready to carry over." : ""}`
+                    : "Suggested only, not your decision. Confirm or change this response to use it in your draft."}</p>
+                </div>
+                <div className="meta" id={`${inputId}-reason`}>{selected !== suggested ? `You changed the suggested response (${DECISION_LABELS[suggested]}). ` : ""}{defaultDecisionReason(f)}</div>
               </div>
             </article>
           );
@@ -239,7 +289,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
       </div>
       <section id={draftId} className="current-draft" aria-labelledby={`${draftId}-heading`} hidden={!showReply}>
         <h2 id={`${draftId}-heading`} className="review-target" ref={draftHeadingRef} tabIndex={-1}>Current response draft</h2>
-        <p className="meta">Generated locally from your selected responses. Review every line before sharing. No deduction amount is accepted and no message is sent.</p>
+        <p className="meta">Generated locally from explicit responses and neutral evidence requests for untouched suggestions. Review every line before sharing. No deduction amount is accepted and no message is sent.</p>
         <div className="row"><button className="chip" onClick={copyDraft}>Copy current draft</button><button className="chip" onClick={downloadDraft}>Download current draft (.txt)</button><button className="chip" onClick={closeDraft}>Close current draft</button></div>
         <div role="status">{copyStatus}</div>
         {showReply && <pre className="reply" data-testid="current-draft">{draft}</pre>}

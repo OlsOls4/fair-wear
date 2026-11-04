@@ -303,3 +303,19 @@ pre.reply { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; backgr
 .sample-case-handoff{margin-top:20px;padding-top:18px;border-top:1px solid var(--border,#d8dfd4)}
 .sample-case-handoff h3{margin:0 0 10px}
 .sample-case-handoff [role=status]:empty{display:none}
+
+/* Optional guided tour: native disclosure keeps the main workflow uncluttered. */
+.judge-walkthrough { margin: 24px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.judge-walkthrough > summary { min-height: 56px; padding: 16px 20px; cursor: pointer; color: var(--ink); }
+.judge-walkthrough > summary strong { margin-right: 16px; }
+.judge-walkthrough > summary > span { color: var(--mute); font-size: 12px; }
+.judge-walkthrough > ol { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0; padding: 12px 20px 20px; }
+.judge-walkthrough li { min-width: 0; }
+.judge-walkthrough h3 { font-size: 17px; margin: 8px 0; }
+.judge-walkthrough li p { color: var(--mute); font-size: 13px; margin-bottom: 0; }
+.judge-walkthrough a { font-weight: 600; overflow-wrap: anywhere; }
+.judge-walkthrough-note { border-top: 1px solid var(--line); margin: 0; padding: 12px 20px; color: var(--mute); font-size: 12px; }
+@media (max-width: 700px) {
+  .judge-walkthrough > ol { grid-template-columns: 1fr; gap: 20px; }
+  .judge-walkthrough > summary > span { display: block; margin-top: 4px; }
+}

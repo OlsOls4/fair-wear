@@ -32,7 +32,7 @@ with sync_playwright() as p:
     page.goto(f"{base}/demo")
     expect(page.locator("select")).to_have_count(20)
     summary = page.get_by_test_id("decision-summary")
-    expect(summary).to_contain_text("Agree: 2")
+    expect(summary).to_contain_text("Discuss after evidence: 2")
     expect(summary).to_contain_text("Dispute: 5")
     expect(summary).to_contain_text("Not claimed: 13")
     passed("20 findings and exact requested default distribution")
@@ -50,7 +50,7 @@ with sync_playwright() as p:
     passed("known false positive and unsegmented miss disclosed")
 
     def review_shortcuts():
-        for label, finding_id in [("Inspect a change", "bedroom-carpet-0-0"), ("Inspect a model error", "bathroom-bath-0-0")]:
+        for label, finding_id in [("Inspect a change", "bedroom-carpet-0-0"), ("Inspect a label mismatch", "bathroom-bath-0-0")]:
             page.get_by_role("button", name="No change (13)", exact=True).click()
             target = page.locator(f'[data-finding-id="{finding_id}"]')
             expect(target).to_have_count(0)
@@ -98,13 +98,13 @@ with sync_playwright() as p:
     response("living-room-carpet-0-1").select_option("Not claimed")
     expect(draft).not_to_contain_text("[living-room-carpet-0-1]")
     response("bedroom-wall-0-1").select_option("Agree")
-    expect(draft).to_contain_text("[bedroom-wall-0-1]: Agree in principle")
+    expect(draft).to_contain_text("[bedroom-wall-0-1]: Discuss after evidence")
     page.get_by_role("button", name="Close current draft", exact=True).click()
     expect(opener).to_be_focused()
     expect(opener).to_have_attribute("aria-expanded", "false")
     expect(draft).to_have_count(0)
     opener.click()
-    expect(draft).to_contain_text("[bedroom-wall-0-1]: Agree in principle")
+    expect(draft).to_contain_text("[bedroom-wall-0-1]: Discuss after evidence")
     passed("manual Not claimed and no-change overrides respected after reply reopen")
 
     with page.expect_download() as download_event:
@@ -277,7 +277,7 @@ with sync_playwright() as p:
     expect(page.get_by_role("heading", name="Current response draft", exact=True)).to_be_focused()
     expect(page.get_by_test_id("current-draft")).to_contain_text("[kitchen-oven-0-0]: Dispute.")
     page.screenshot(path=str(artifacts / "current-draft-mobile.png"))
-    expect(page.get_by_test_id("current-draft")).to_contain_text("[bathroom-bath-0-0]: Agree in principle")
+    expect(page.get_by_test_id("current-draft")).to_contain_text("[bathroom-bath-0-0]: Discuss after evidence")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     passed("mobile shortcuts, focus, layout and draft preserve changed choices without overflow")
     page.set_viewport_size({"width": 1280, "height": 900})

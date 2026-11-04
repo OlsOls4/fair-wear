@@ -1,3 +1,4 @@
+import { qualifyAnalysisRequest } from "./context";
 import { JudgeValidationError } from "./judgement";
 import { matchItems } from "./matching";
 import type { EvidencePack, Finding, Item, MatchedPair, MatchingResult } from "./types";
@@ -17,10 +18,15 @@ export function createAnalyzeHandler(deps: Dependencies) {
       message: "Live analysis is unavailable in demo mode. Explore the precomputed sample instead. No evidence pack was generated.",
     }, { status: 503 });
     try {
-      const { property = "Demo flat", tenancyYears = 2, rooms = [] } = await req.json().catch(() => ({}));
+      const qualification = qualifyAnalysisRequest(await req.json().catch(() => null));
+      if (!qualification.ok) return Response.json({
+        mock: false, error: "analysis_context_required", status: "unresolved",
+        message: qualification.reason,
+      }, { status: 422 });
+      const { property, tenancyYears, rooms } = qualification.value;
       const findings: Finding[] = [];
       const correspondence: (MatchingResult & { room: string })[] = [];
-      for (const r of rooms as { room: string; moveInUrl: string; moveOutUrl: string }[]) {
+      for (const r of rooms) {
         const [b, a] = await Promise.all([
           deps.extractItems(r.moveInUrl, "move_in", r.room), deps.extractItems(r.moveOutUrl, "move_out", r.room),
         ]);
@@ -35,6 +41,10 @@ export function createAnalyzeHandler(deps: Dependencies) {
       // Keep the review gap inside the pack too, so exporting only pack cannot silently lose it.
       return Response.json({ mock: deps.mock, pack: {
         ...pack, correspondence,
+        context: { type: "tenancy", source: "user_declared", tenancyYears,
+          records: rooms.map(({ room, moveInDate, moveOutDate, provenance, sameRoomConfirmed, sameItemsConfirmed }) => ({ room, moveInDate, moveOutDate, provenance, sameRoomConfirmed, sameItemsConfirmed })),
+          limitation: "Dates, provenance and same-room and same-item attestations are supplied by the requester, not independently verified. Matching proposes identity; neither matching nor schema validation proves causation, chronology or liability.",
+        },
         replyDraft: unresolvedCount
           ? `Correspondence needs review for ${unresolvedCount} item observations. No added, missing, or condition verdict was made for these observations.\n\n${pack.replyDraft}`
           : pack.replyDraft,

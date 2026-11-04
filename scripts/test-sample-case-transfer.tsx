@@ -45,10 +45,19 @@ async function main() {
   const html = buildCaseHtml({ mode: "sample", title: "Sample", items: embedded });
   const draft = caseReply({ mode: "sample", title: "Sample", items: imported });
   ok("portable bundle separates current human response, imported starting choice and model output", () => {
-    assert.match(html, /Starting choice from sample review/); assert.match(html, /selected sample review response: Agree/);
+    assert.match(html, /Starting choice from sample review/); assert.match(html, /selected sample review response: Discuss after evidence/);
     assert.match(html, /Original verdict: damage/); assert.match(html, /not the reviewer&#39;s conclusion|not the reviewer's conclusion/);
     assert.doesNotMatch(html, /Clean oven/); assert.doesNotMatch(draft, /Clean oven/); assert.match(draft, /willing to discuss/);
     assert.match(draft, /No amount is agreed/);
+  });
+  ok("private photo context cannot relabel sample handoff exports or alter imported choices", () => {
+    const sampleDocument = { mode: "sample" as const, title: "Sample", items: embedded };
+    assert.equal(buildCaseHtml({ ...sampleDocument, photoContext: "other" }), html);
+    assert.equal(caseReply({ ...sampleDocument, items: imported, photoContext: "other" }), draft);
+    assert.match(html, /Move-in: carpet/);
+    assert.doesNotMatch(html, /Before\/After|timing is unverified/);
+    assert.deepEqual(imported.map((item) => item.response), ["discuss", "omit", "question"]);
+    assert.equal(JSON.stringify(imported.map((item) => item.model)), originalModel);
   });
   prepareSampleCaseTransfer(storage, { [other]: "Agree" }, token);
   ok("untouched defaults and unrelated findings never become chosen responses", () => {
@@ -63,7 +72,7 @@ async function main() {
     storage.setItem(KEY, raw);
     ok(`invalid or stale payload is rejected and consumed (${checks})`, () => { assert.equal(takeSampleCaseTransfer(storage, token), null); assert.equal(storage.getItem(KEY), null); });
   }
-  storage.setItem(KEY, payload(JSON.parse(`{"${carpet}":"Agree","private":"Agree","__proto__":{"polluted":true}}`), { note: "PRIVATE NOTE", photos: "data:image/jpeg;base64,AAAA" }));
+  storage.setItem(KEY, payload(JSON.parse(`{"${carpet}":"Agree","private":"Agree","__proto__":{"polluted":true}}`), { note: "PRIVATE NOTE", photos: "data:image/jpeg;base64,AAAA", photoContext: "other" }));
   ok("tampered extra fields, unknown IDs and prototype injection never propagate", () => {
     assert.deepEqual(takeSampleCaseTransfer(storage, token), { [carpet]: "Agree" });
     assert.equal(({} as Record<string, unknown>).polluted, undefined);
@@ -106,6 +115,85 @@ async function main() {
     assert.ok(samples.some((item) => item.model?.id === carpet));
     assert.match(text(), /Start with the bedroom carpet/);
   });
+  const progress = () => host.querySelector('[data-testid="sample-choice-progress"]')!.textContent!;
+  ok("untouched supported suggestions have explicit confirmation and zero progress", () => {
+    assert.match(progress(), /0 of 3/);
+    assert.equal(host.querySelectorAll('button[aria-label^="Confirm "]').length, demoFindings.length);
+    assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), null);
+  });
+  await click("Confirm Dispute");
+  ok("confirming unchanged Dispute records an explicit choice without changing the response", () => {
+    assert.match(progress(), /1 of 3/);
+    assert.deepEqual(JSON.parse(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY)!).responses, { [carpet]: "Dispute" });
+    assert.match(text(), /confirmed suggestion/);
+  });
+  await mount(board);
+  ok("confirmed suggestion survives reload-style mount", () => {
+    assert.match(progress(), /1 of 3/);
+    assert.ok(button("Undo confirmation"));
+  });
+  await choose(oven, "Not claimed"); await click("Continue to case builder");
+  ok("mixed confirmed default and changed choice transfer together", () => {
+    assert.deepEqual(JSON.parse(storage.getItem(KEY)!).responses, { [carpet]: "Dispute", [oven]: "Not claimed" });
+  });
+  await click("Undo confirmation");
+  ok("undo removes only confirmed choice and invalidates pending handoff", () => {
+    assert.match(progress(), /1 of 3/);
+    assert.equal(storage.getItem(KEY), null);
+    assert.deepEqual(JSON.parse(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY)!).responses, { [oven]: "Not claimed" });
+  });
+  await click("Reset suggested responses");
+  ok("reset clears confirmations and progress", () => {
+    assert.match(progress(), /0 of 3/);
+    assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), null);
+  });
+  for (const action of ["undo", "change"] as const) {
+    for (const removalFails of [false, true]) {
+      await click("Confirm Dispute"); await choose(oven, "Not claimed");
+      await click("Continue to case builder");
+      const snapshot = storage.getItem(KEY);
+      Object.defineProperty(dom.window, "sessionStorage", { configurable: true, value: {
+        getItem: storage.getItem.bind(storage),
+        setItem() { throw new Error("write denied"); },
+        removeItem(key: string) { if (removalFails) throw new Error("removal denied"); storage.removeItem(key); },
+      } });
+      if (action === "undo") await click("Undo confirmation");
+      else await choose(carpet, "Agree");
+      ok(`${action} independently attempts handoff invalidation after a failed save (remove fails: ${removalFails})`, () => {
+        assert.equal(storage.getItem(KEY), removalFails ? snapshot : null);
+        assert.match(text(), /Tab storage is unavailable/);
+        assert.match(progress(), action === "undo" ? /1 of 3/ : /2 of 3/);
+        if (removalFails) {
+          assert.match(text(), /Earlier choices may still be imported if navigation continues/);
+          assert.ok(button("Cancel handoff"));
+        } else assert.doesNotMatch(text(), /earlier handoff could not be cleared/);
+      });
+      Object.defineProperty(dom.window, "sessionStorage", { configurable: true, value: storage });
+      if (removalFails) {
+        await click("Cancel handoff");
+        ok(`${action} failed cleanup can be retried without overwriting current choices`, () => {
+          assert.equal(storage.getItem(KEY), null);
+          assert.match(text(), /Prepared handoff cleared/);
+          assert.match(progress(), action === "undo" ? /1 of 3/ : /2 of 3/);
+        });
+      }
+      await click("Reset suggested responses");
+    }
+  }
+  await click("Confirm Dispute"); await click("Continue to case builder");
+  Object.defineProperty(dom.window, "sessionStorage", { configurable: true, value: {
+    getItem: storage.getItem.bind(storage), setItem: storage.setItem.bind(storage),
+    removeItem(key: string) { if (key === SAMPLE_REVIEW_STORAGE_KEY) throw new Error("review removal denied"); storage.removeItem(key); },
+  } });
+  await click("Reset suggested responses");
+  ok("reset invalidates the handoff even if clearing saved review choices fails", () => {
+    assert.equal(storage.getItem(KEY), null);
+    assert.match(text(), /saved choices could not be cleared/);
+    assert.match(progress(), /0 of 3/);
+  });
+  Object.defineProperty(dom.window, "sessionStorage", { configurable: true, value: storage });
+  await click("Reset suggested responses");
+  attemptedNavigations = 0;
   await choose(carpet, "Agree"); await choose(oven, "Not claimed"); await choose(other, "Dispute");
   await click("Cleaning ("); await click("Continue to case builder");
   let prepared = JSON.parse(storage.getItem(KEY)!);
@@ -133,7 +221,7 @@ async function main() {
   ok("explicit token navigation imports once even in StrictMode, clears URL and store, and keeps saved Board choices", () => {
     assert.match(text(), /2 selected sample responses carried over/); assert.equal(response(), "discuss");
     assert.equal(storage.getItem(KEY), null); assert.equal(dom.window.location.search, "");
-    assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), boardStore); assert.match(text(), /selected sample review response: Agree/);
+    assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), boardStore); assert.match(text(), /selected sample review response: Discuss after evidence/);
   });
   await click("oven"); ok("Not claimed stays omitted", () => assert.equal(response(), "omit"));
   await click("bath"); ok("untouched sample starts Question with no invented reviewed provenance", () => { assert.equal(response(), "question"); assert.equal(host.querySelector('[data-testid="imported-review-response"]'), null); });

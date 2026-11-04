@@ -7,6 +7,7 @@ import path from "node:path";
 import { confidenceLabel } from "../lib/findings";
 import { execFileSync } from "node:child_process";
 import { sam31Segment } from "../lib/pipeline/models";
+import { independentCropBoxes } from "./crop-plan";
 import { planDemoCorrespondence } from "./demo-correspondence";
 import { judge } from "../lib/pipeline";
 import { guidanceFor } from "../lib/pipeline/guidance";
@@ -52,14 +53,14 @@ async function items(room: string, visit: "move_in" | "move_out"): Promise<Item[
     const [bi, bo] = await Promise.all([items(p.room, "move_in"), items(p.room, "move_out")]);
     const { pairs, report } = planDemoCorrespondence(p.room, bi, bo);
     correspondence.push(report);
-    // Handheld walkthroughs would need frame alignment; the demo flat uses a fixed camera, so crop BOTH visits to the union of the two boxes.
+    // No verified registration: crop each source independently, never union cross-image coordinates.
     for (const pr of pairs) {
       const b = (pr.before as any).px as number[], a = (pr.after as any).px as number[];
-      const u = [Math.min(b[0], a[0]), Math.min(b[1], a[1]), Math.max(b[2], a[2]), Math.max(b[3], a[3])];
+      const boxes = independentCropBoxes(b, a);
       for (const it of [pr.before!, pr.after!]) {
         const crop = `${cropDir}/${p.room}-${it.visit}-${pr.label.replace(/ /g, "_")}-${it.id.split("-").pop()}.jpg`;
         fs.mkdirSync(cropDir, { recursive: true });
-        py(it.bestFrame.url, ...u.map(String), crop, "0.03", "768");
+        py(it.bestFrame.url, ...(it === pr.before ? boxes.before : boxes.after).map(String), crop, "0.03", "768");
         (it as any).cropFile = crop.startsWith("public/") ? "/" + crop.slice(7) : path.resolve(crop);
         it.bestFrame = { ...it.bestFrame, url: "data:image/jpeg;base64," + fs.readFileSync(crop).toString("base64") };
       }

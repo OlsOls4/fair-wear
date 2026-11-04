@@ -11,6 +11,28 @@ const sample = sampleCaseItems(demoFindings);
 const document: CaseDocument = { mode: "sample", title: "Review of example deductions", items: sample.map((item) => ({ ...item, before: { src: png, origin: "sample" }, after: { src: png, origin: "sample" } })) };
 const complete: CaseItem = { ...emptyCaseItem("calculation"), costType: "replacement", replacementCost: "480", ageAtMoveIn: "2", tenancyYears: "2", usefulLife: "8", qualityBasis: "Fictional demonstration assumption only" };
 
+test("private drafts describe only included photos and never invent attachments", () => {
+  const plain = emptyCaseItem("private");
+  for (const photoContext of ["tenancy", "other"] as const) for (const items of [[], [plain], [plain, { ...plain, id: "omitted-photo", response: "omit" as const, before: { src: png, origin: "local" as const } }]]) {
+    const privateCase: CaseDocument = { mode: "personal", title: "Private draft", items, photoContext };
+    for (const text of [caseReply(privateCase), buildCaseHtml(privateCase)]) {
+      assert.match(text, /No photos are included/);
+      assert.match(text, /timing is unverified/);
+      assert.doesNotMatch(text, /These photos/);
+      assert.doesNotMatch(text, /with the attached evidence|information and photos supplied|information and selected photos/);
+    }
+  }
+  for (const photoContext of ["tenancy", "other"] as const) for (const side of ["before", "after"] as const) {
+    const privateCase: CaseDocument = { mode: "personal", title: "Private draft", photoContext, items: [{ ...plain, [side]: { src: png, origin: "local" } }] };
+    assert.match(caseReply(privateCase), /selected photos/);
+    assert.match(caseReply(privateCase), /timing is unverified/);
+    assert.match(caseReply(privateCase), /Photos are not attached to this text draft/);
+    assert.doesNotMatch(caseReply(privateCase), /with the attached evidence|No photos are included/);
+    assert.match(buildCaseHtml(privateCase), /contains its selected images/);
+    assert.equal(new JSDOM(buildCaseHtml(privateCase)).window.document.querySelectorAll("img").length, 1);
+  }
+});
+
 test("money is exact at pennies and blank is unknown", () => {
   assert.equal(moneyPence("0"), 0); assert.equal(moneyPence(" 480.20 "), 48020); assert.equal(moneyPence("0.01"), 1); assert.equal(moneyPence("1000000"), 100000000);
   for (const bad of ["", " ", "-1", "0.001", "1e2", "NaN", "Infinity", "1,000", "£1", "1000000.01", "<img>"]) assert.equal(moneyPence(bad), null, bad);
@@ -76,6 +98,25 @@ test("personal export never claims AI analysis or file authenticity", () => {
   const html = buildCaseHtml(personal);
   assert.match(html, /were not uploaded or analysed by AI/); assert.match(html, /does not verify date, authorship or authenticity/); assert.match(html, /Move-out photo not provided/); assert.doesNotMatch(html, /Original verdict/);
 });
+test("other comparison labels propagate to synthetic photos, missing views and draft without tenancy claims", () => {
+  // Synthetic one-pixel PNG, not a user photo.
+  const synthetic = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
+  const personal: CaseDocument = { mode: "personal", photoContext: "other", title: "Cleaning comparison", items: [{ ...emptyCaseItem("cleaning"), item: "Oven", costType: "cleaning", before: { src: synthetic, origin: "local" }, after: { src: synthetic, origin: "local" } }] };
+  const html = buildCaseHtml(personal), parsed = new JSDOM(html).window.document;
+  assert.deepEqual(Array.from(parsed.querySelectorAll("img")).map(img => img.alt), ["Before: Oven", "After: Oven"]);
+  assert.match(caseReply(personal), /Before\/After \(other comparison\)/);
+  assert.match(html, /timing is unverified/); assert.match(caseReply(personal), /not identified as tenancy move-in\/out records/);
+  assert.doesNotMatch(html, /Move-in: Oven|Move-out: Oven|Original verdict/);
+  assert.match(buildCaseHtml({ ...personal, items: [{ ...personal.items[0], after: undefined }] }), /After photo not provided/);
+  const omitted = buildCaseHtml({ ...personal, items: [{ ...personal.items[0], response: "omit" }] });
+  assert.equal(new JSDOM(omitted).window.document.querySelectorAll("img").length, 0);
+});
+test("legacy and sample documents preserve tenancy labels and model findings", () => {
+  const defaultPersonal = buildCaseHtml({ ...document, mode: "personal" });
+  assert.match(defaultPersonal, /Move-in: carpet/); assert.match(defaultPersonal, /timing is unverified/);
+  assert.equal(buildCaseHtml({ ...document, photoContext: "other" }), buildCaseHtml(document));
+  assert.equal(caseReply({ ...document, photoContext: "other" }), caseReply(document));
+});
 test("full calculation exports assumptions and no settlement conclusion", () => {
   const html = buildCaseHtml({ ...document, items: [complete] });
   assert.match(html, /£240\.00/); assert.match(html, /Fictional demonstration assumption only/); assert.match(html, /not a suggested settlement or tenant liability/);
@@ -83,7 +124,7 @@ test("full calculation exports assumptions and no settlement conclusion", () => 
 (async () => {
   const realFetch = globalThis.fetch; let calls = 0;
   globalThis.fetch = async () => { calls++; throw new Error("Unexpected network use"); };
-  const localDocument: CaseDocument = { mode: "personal", title: "Private", items: [{ ...emptyCaseItem("local"), before: { src: png, origin: "local" } }] };
+  const localDocument: CaseDocument = { mode: "personal", photoContext: "other", title: "Private", items: [{ ...emptyCaseItem("local"), before: { src: png, origin: "local" } }] };
   assert.equal(JSON.stringify(await embedCaseImages(localDocument)), JSON.stringify(localDocument)); checks++; console.log("ok personal photo export performs no fetch");
   const omitted = await embedCaseImages({ ...document, items: [{ ...sample[0], response: "omit" }] }); assert.equal(calls, 0); assert.equal(omitted.items[0].before, undefined); checks++; console.log("ok omitted sample photos are not fetched");
   await assert.rejects(embedCaseImages({ ...document, items: [{ ...sample[0], before: { src: "https://example.com/track", origin: "sample" } }] }), /Unexpected sample image/); assert.equal(calls, 0); checks++; console.log("ok sample loader rejects external source before fetch");

@@ -1,0 +1,19 @@
+# Live analysis qualification and crop safety
+
+The live `POST /api/analyze` contract is intentionally stricter. Old requests with only room URLs now receive HTTP 422 (`analysis_context_required`, `status: unresolved`) before extraction, judging, card generation or reply generation. There is no default tenancy length or property. Unknown and cleaning-only contexts are unsupported; this endpoint is not a general-purpose photo comparator. Demo mode still returns HTTP 503, and cached sample artifacts and metrics are unchanged.
+
+A qualifying body must contain:
+
+- `context: "tenancy"`, a nonblank `property`, and a positive finite numeric `tenancyYears` explicitly supplied by the requester.
+- A nonempty `rooms` array, each with `room`, `moveInUrl`, `moveOutUrl`, valid calendar dates `moveInDate` and `moveOutDate` in YYYY-MM-DD format, with move-in strictly before move-out.
+- Each room must declare `provenance: "user_supplied_records"`, `sameRoomConfirmed: true` and `sameItemsConfirmed: true`. These are requester attestations that the records depict the same room and intended items, not authenticated facts or a substitute for review of individual proposed matches.
+
+The entire batch is qualified before the first extraction call. Opaque URLs and filenames never supply dates, visit semantics, identity or provenance. Years are not silently derived from photo dates: photographs do not necessarily mark the precise start/end of a tenancy. Unknown dates or provenance require better records, not guesses. A successful response retains dates and attestations in `pack.context`, labelled `user_declared`, with their verification limits. Callers migrating from the old API must collect these declarations explicitly, not populate default values to satisfy validation.
+
+These checks establish the presence and consistency of specified inputs only. They do not authenticate provenance, prove object identity, establish damage causation, decide responsibility, or give legal meaning to a classification. Candidate matching remains subject to human review. The prompt now explicitly forbids inferred chronology, cleaning narratives, causal claims and responsibility, and tells the model to abstain when identity or view comparability is uncertain. JSON-schema validation cannot enforce these semantic restrictions or prove their absence: an offline regression deliberately demonstrates that a grammatical causal claim can pass the schema. No new real-image accuracy or semantic-safety claim is made.
+
+The future demo runner no longer crops both inputs to a union of coordinates. No registration verifier exists. Equal dimensions, intended fixed cameras, room labels and boxes are not registration evidence. Each crop is bounded and derived solely from its own source dimensions and box, even for unequal views. Independent crops are not aligned measurements and cannot prove movement or correlation. Historical crops and their provenance description stay unchanged; rerunning the paid fixture requires separate authorization and does not silently rewrite the historical evidence.
+
+A safe general photo-comparison endpoint remains future work: neutral image A/B roles, explicit comparison context, observation-only outputs, comparable-view and identity abstentions, evidence-grounded human review and real held-out evaluation. Do not route cleaning/unknown pairs into this tenancy endpoint as a fallback.
+
+Verification: `npm test` includes offline spies proving zero inference calls for unqualified cases, missing/equal/reversed dates, unknown provenance and missing attestations; it retains qualified route and error-path coverage. Independent-crop checks cover unequal dimensions, equal dimensions without registration, source reversal and invalid bounds. All fixtures are synthetic; no private photos or private model text are included.

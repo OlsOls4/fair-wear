@@ -24,13 +24,13 @@ Show sample findings. Enlarge the bedroom carpet evidence, switch move-in/move-o
 
 ## 1:25–2:05: Control the response
 
-Filter to Cleaning. Show ordinary oven cleaning suggested as Agree and bath mould suggested as Dispute. Change the oven to Dispute, then return to All.
+Filter to Cleaning. Show ordinary oven cleaning suggested as Discuss after evidence and bath mould suggested as Dispute. Change the oven to Dispute, then return to All.
 
-“Suggested responses are separate from model verdicts. Fair wear, mould cleaning and damage below ninety percent confidence start as Dispute. Ordinary cleaning and higher-confidence damage start as Agree, subject to review. No change starts as Not claimed. I can override any choice; filtering does not lose my changes. Confidence is not proof of responsibility.”
+“Suggested responses are separate from model verdicts. Fair wear, mould cleaning and damage below ninety percent confidence start as Dispute. Ordinary cleaning and higher-confidence damage start as Discuss after evidence, never acceptance. No change starts as Not claimed. I can override any choice; filtering does not lose my changes. Confidence is not proof of responsibility.”
 
 ## 2:05–2:40: A draft that follows the choices
 
-Choose **Show current draft**. Show the oven dispute. Change one item to Not claimed and show that it disappears. Download the current text draft.
+Choose **Open current draft**. Show the oven dispute. Change one item to Not claimed and show that it disappears. Download the current text draft.
 
 “The draft follows the choices I make. It asks for supporting evidence and costs rather than automatically accepting the model's percentage estimates. Nothing is sent. The original model reply and PDF remain separately labelled as unchanged artifacts; they do not include my selections.”
 

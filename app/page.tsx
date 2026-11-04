@@ -1,3 +1,4 @@
+import JudgeWalkthrough from "@/components/JudgeWalkthrough";
 import ArrowIcon from "@/components/ArrowIcon";
 import SampleComparison from "@/components/SampleComparison";
 import { demoEvaluation as evaluation } from "@/lib/demo";
@@ -23,11 +24,13 @@ export default function Home() {
         <span className="prototype-label">Working prototype</span>
       </aside>
 
+      <JudgeWalkthrough />
+
       <section className="home-process" aria-labelledby="process-title">
         <div className="section-heading"><p className="eyebrow">From a change to a considered response</p><h2 id="process-title">Less guesswork.<br /><em>More to go on.</em></h2></div>
         <div className="process-grid">
           <article><span className="step-number">01 / Compare</span><h3>See the evidence.</h3><p>View both visits side by side. Enlarge the item crops and check what is actually visible.</p></article>
-          <article><span className="step-number">02 / Question</span><h3>Challenge the suggestion.</h3><p>Inspect the model’s reasoning and known mistakes. Choose Agree, Dispute, or Not claimed for each finding.</p></article>
+          <article><span className="step-number">02 / Question</span><h3>Challenge the suggestion.</h3><p>Inspect the model’s reasoning and disagreements with planted test intent. Choose Discuss after evidence, Dispute, or Not claimed for each finding.</p></article>
           <article><span className="step-number">03 / Respond</span><h3>Make the draft yours.</h3><p>Prepare a response from your choices. Review and export it locally. No charge is automatically accepted.</p></article>
         </div>
       </section>
@@ -37,7 +40,7 @@ export default function Home() {
         <div className="home-metrics">
           <div><strong>{evaluation.detected}<span>/{evaluation.planted}</span></strong><span>Planted changes detected</span></div>
           <div><strong>{evaluation.exactVerdict}<span>/{evaluation.planted}</span></strong><span>Exact model verdicts</span></div>
-          <p>Including a fair-wear carpet wrongly labelled damage and a missed sealant change. Your review is part of the process.</p>
+          <p>Including a carpet planted as fair wear but labelled damage, and a sealant change with no saved finding. Your review is part of the process.</p>
         </div>
       </section>
       <section className="home-final"><p className="eyebrow">Your evidence. Your judgement.</p><h2>Take a closer look.</h2><a className="btn" href="/demo">Open the sample review <ArrowIcon /></a><p>Prototype for UK rental deposit evidence. Not legal advice or a determination of responsibility.</p></section>

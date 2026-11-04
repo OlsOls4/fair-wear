@@ -77,7 +77,7 @@ async function main() {
 
   const uiFinding: F = { id: "test-unresolved", room: "living-room", item: "sofa", verdict: "unresolved", confidence: null, description: "No matched move-out observation was supplied.", tenancyYears: 2, ageYears: 0, calculationBasis: basis, apportionmentPct: 75 };
   const draft = replyDraft("Test property", [uiFinding]);
-  assert.match(draft, /Dispute/);
+  assert.match(draft, /Review pending/);
   assert.match(draft, /observations do not establish a change/);
   assert.match(draft, /comparable dated move-in and move-out evidence/);
   assert.doesNotMatch(draft, /Agree in principle|75%|the item is missing\.|the item was added\./);

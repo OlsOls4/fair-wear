@@ -105,7 +105,7 @@ async function main() {
     assert.equal((host.querySelector(".scene-tag-after") as HTMLElement).hidden, false);
   });
   await act(async () => root.render(<Board property={demoData.property} findings={demoFindings} reply="ARCHIVE SENTINEL" pdf="/original.pdf" />));
-  ok("exact default counts", () => assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13"));
+  ok("exact default counts", () => assert.equal(summary(), "Discuss after evidence: 2Dispute: 5Not claimed: 13"));
   ok("responses have item-specific labels and linked explanations", () => {
     for (const select of host.querySelectorAll("select")) {
       const labelled = select.getAttribute("aria-labelledby")!.split(" ").map((id) => document.getElementById(id));
@@ -132,7 +132,7 @@ async function main() {
     assert.ok(region?.hidden);
     assert.equal(opener.getAttribute("aria-expanded"), "false");
   });
-  for (const [label, id] of [["Inspect a change", "bedroom-carpet-0-0"], ["Inspect a model error", "bathroom-bath-0-0"]]) {
+  for (const [label, id] of [["Inspect a change", "bedroom-carpet-0-0"], ["Inspect a label mismatch", "bathroom-bath-0-0"]]) {
     await click("No change (13)");
     assert.equal(host.querySelector(`[data-finding-id="${id}"]`), null);
     await click(label);
@@ -140,7 +140,7 @@ async function main() {
       assert.equal(host.querySelectorAll("article").length, 20);
       assert.equal(document.activeElement, card(id));
       assert.equal(lastScrollTarget, card(id));
-      assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13");
+      assert.equal(summary(), "Discuss after evidence: 2Dispute: 5Not claimed: 13");
       assert.equal(button("All (20)").getAttribute("aria-pressed"), "true");
       assert.equal(host.querySelector('[data-testid="filter-summary"]')!.textContent, "Showing 20 of 20 findings.");
     });
@@ -158,9 +158,31 @@ async function main() {
   button("Open current draft").focus();
   await click("Open current draft");
   ok("reopening an already visible draft still focuses its heading", () => assert.equal(document.activeElement?.textContent, "Current response draft"));
+  ok("untouched suggestions do not speak as reviewer decisions", () => {
+    assert.doesNotMatch(draft(), /I dispute|I am willing|Agree in principle|I am open to/);
+    assert.match(draft(), /Review pending. No reviewer response selected/);
+    assert.match(host.querySelector('[data-testid="review-choice-count"]')!.textContent!, /0 of 20/);
+  });
+  const confirmCleaning = () => card(cleaning.id).querySelector<HTMLButtonElement>(".decision-control button")!;
+  ok("all findings can be explicitly confirmed with accessible labels", () => {
+    assert.equal(host.querySelectorAll('button[aria-label^="Confirm "]').length, demoFindings.length);
+    assert.match(confirmCleaning().getAttribute("aria-label")!, /Confirm Discuss after evidence/);
+    assert.match(card(cleaning.id).querySelector("select")!.selectedOptions[0].textContent!, /Discuss after evidence/);
+  });
+  await act(async () => confirmCleaning().click());
+  ok("confirmation creates discussion without accepting responsibility", () => {
+    assert.ok(draft().includes(`[${cleaning.id}]: Discuss after evidence`));
+    assert.match(draft(), /I have not accepted responsibility or agreed an amount/);
+    assert.match(host.querySelector('[data-testid="review-choice-count"]')!.textContent!, /1 of 20/);
+  });
+  await act(async () => confirmCleaning().click());
+  ok("undo returns discussion to neutral review pending", () => {
+    assert.ok(draft().includes(`[${cleaning.id}]: Review pending`));
+    assert.doesNotMatch(draft(), /I am willing/);
+  });
   await choose(cleaning.id, "Dispute");
   await click("Inspect a change");
-  await click("Inspect a model error");
+  await click("Inspect a label mismatch");
   await click("Open current draft");
   ok("selection changes visible draft", () => assert.match(draft(), new RegExp(`\\[${cleaning.id}\\]: Dispute\\.`)));
   await click("Damage (4)");
@@ -173,7 +195,7 @@ async function main() {
   await choose(cleaning.id, "Not claimed");
   ok("Not claimed removes item", () => assert.ok(!draft().includes(`[${cleaning.id}]`)));
   await choose(noChange.id, "Agree");
-  ok("no-change Agree override is included", () => assert.ok(draft().includes(`[${noChange.id}]: Agree in principle`)));
+  ok("no-change Agree override is included", () => assert.ok(draft().includes(`[${noChange.id}]: Discuss after evidence`)));
   ok("no-change explanation remains a suggestion after override", () => {
     assert.ok(card(noChange.id).textContent!.includes("Not claimed is the suggested response"));
     assert.ok(!card(noChange.id).textContent!.includes("this item is not included in the draft"));
@@ -185,12 +207,12 @@ async function main() {
     assert.equal(host.querySelector('[data-testid="current-draft"]'), null);
   });
   await click("Open current draft");
-  ok("draft show/hide preserves choices", () => { assert.ok(draft().includes(`[${noChange.id}]: Agree in principle`)); assert.ok(!draft().includes(`[${cleaning.id}]`)); });
+  ok("draft show/hide preserves choices", () => { assert.ok(draft().includes(`[${noChange.id}]: Discuss after evidence`)); assert.ok(!draft().includes(`[${cleaning.id}]`)); });
   await click("Copy current draft");
   ok("copy uses only current draft", () => { assert.equal(copied, draft()); assert.ok(!copied.includes("ARCHIVE SENTINEL")); });
   dom.window.navigator.clipboard.writeText = async () => { throw new Error("Test: clipboard unavailable"); };
   await click("Copy current draft");
-  ok("clipboard failure provides a manual fallback", () => assert.match(host.querySelector('[role="status"]')!.textContent!, /copy it manually/));
+  ok("clipboard failure provides a manual fallback", () => assert.match(host.querySelector('.current-draft [role="status"]')!.textContent!, /copy it manually/));
   await click("Download current draft (.txt)");
   const downloadText = await downloaded!.text();
   ok("download uses current draft text", () => { assert.equal(downloadText, draft()); assert.equal(downloadName, "fair-wear-review-draft.txt"); });
@@ -202,9 +224,9 @@ async function main() {
     assert.match(archive.querySelector("a")!.textContent!, /original precomputed PDF \(unchanged\)/);
   });
   await click("Reset suggested responses");
-  ok("reset restores counts and default draft", () => { assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13"); assert.ok(!draft().includes(`[${noChange.id}]`)); assert.ok(draft().includes(`[${cleaning.id}]: Agree in principle`)); });
+  ok("reset restores counts and default draft", () => { assert.equal(summary(), "Discuss after evidence: 2Dispute: 5Not claimed: 13"); assert.ok(!draft().includes(`[${noChange.id}]`)); assert.ok(draft().includes(`[${cleaning.id}]: Review pending`)); });
   await click("No change (13)");
-  await click("Inspect a model error");
+  await click("Inspect a label mismatch");
   ok("review shortcut still works after reset", () => assert.equal(document.activeElement, card("bathroom-bath-0-0")));
   const evidenceCard = card("bedroom-carpet-0-0");
   const enlarge = evidenceCard.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!;

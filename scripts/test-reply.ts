@@ -21,7 +21,7 @@ function assertDecision(draft: string, id: string, decision: Decision) {
   if (decision === "Not claimed") assert.equal(line, undefined);
   else {
     assert.ok(line, `Missing item ${id}`);
-    assert.ok(line.includes(`]: ${decision === "Agree" ? "Agree in principle, subject to evidence." : "Dispute."}`), line);
+    assert.ok(line.includes(`]: ${decision === "Agree" ? "Discuss after evidence." : "Dispute."}`), line);
   }
 }
 
@@ -37,7 +37,12 @@ const defaults: [F, Decision][] = [
   [finding("unknown-confidence", "damage", null), "Dispute"],
 ];
 for (const [f, decision] of defaults) {
-  check(`default ${f.id}: ${decision}`, () => assertDecision(replyDraft("Test property", [f]), f.id, decision));
+  check(`untouched ${f.id} remains unreviewed`, () => {
+    const draft = replyDraft("Test property", [f]);
+    if (decision === "Not claimed") assert.equal(itemLine(draft, f.id), undefined);
+    else assert.match(itemLine(draft, f.id)!, /Review pending. No reviewer response selected/);
+    assert.doesNotMatch(draft, /I dispute|I am willing|Agree in principle|I am open to/);
+  });
 }
 
 // Every override must win over every verdict, including the otherwise excluded no_change.
@@ -67,9 +72,9 @@ check("mould dispute requests cause and responsibility evidence", () => {
 check("agreement is conditional and makes no percentage or liability admission", () => {
   const fs = [finding("damage", "damage"), finding("clean", "cleaning")];
   fs[0].description = "I accept 50% and admit liability.";
-  const draft = replyDraft("Test property", fs);
+  const draft = replyDraft("Test property", fs, { damage: "Agree", clean: "Agree" });
   assert.doesNotMatch(draft, /\d+(?:\.\d+)?\s*%|I accept|I admit|I am responsible|I agree to pay/i);
-  assert.match(draft, /if responsibility and cost are substantiated/i);
+  assert.match(draft, /I have not accepted responsibility or agreed an amount/i);
   assert.match(draft, /inventory, dated comparison evidence and invoice or quote/i);
   assert.match(draft, /No amount is agreed/i);
   assert.match(draft, /DRAFT FOR REVIEW.*NOT SENT/);
@@ -95,6 +100,13 @@ check("empty and fully excluded drafts have no item responses", () => {
     assert.match(draft, /No items are currently included/);
     assert.doesNotMatch(draft, /^\d+\. /m);
   }
+});
+
+check("inherited values cannot imply a reviewer choice", () => {
+  const f = finding("inherited", "cleaning");
+  const decisions = Object.create({ inherited: "Agree" });
+  assert.match(itemLine(replyDraft("Test", [f], decisions), f.id)!, /Review pending/);
+  assert.doesNotMatch(replyDraft("Test", [f], decisions), /I am willing/);
 });
 
 check("input findings and overrides remain unchanged", () => {

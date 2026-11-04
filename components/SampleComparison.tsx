@@ -3,7 +3,7 @@
 import { useId, useRef, useState, type PointerEvent } from "react";
 
 const ROOMS = [
-  { id: "bedroom", label: "Bedroom", note: "The model can get it wrong. You stay in control.", detail: "This carpet was planted as fair wear, but the model called it damage. The error is published in the review.", type: "Known model error", number: "01" },
+  { id: "bedroom", label: "Bedroom", note: "The model can get it wrong. You stay in control.", detail: "This carpet was planted as fair wear; the model’s damage label disagrees with that test intent. Compare the images and make your own assessment.", type: "Disagrees with planted test intent", number: "01" },
   { id: "living-room", label: "Living room", note: "A visible change is a starting point, not a verdict.", detail: "The model flagged carpet damage. Inspect the evidence, then decide how to respond.", type: "Change detected", number: "02" },
   { id: "kitchen", label: "Kitchen", note: "Different changes need different questions.", detail: "The model suggested worktop damage and oven cleaning. Neither suggestion establishes a reasonable charge.", type: "Two types of change", number: "03" },
   { id: "bathroom", label: "Bathroom", note: "What the model misses matters, too.", detail: "The sealant was not segmented, so it has no finding card. A missing finding is not evidence of no change.", type: "Known missed item", number: "04" },

@@ -76,18 +76,29 @@ with sync_playwright() as p:
     expect(page.get_by_role("status")).to_contain_text("Photo ready")
     assert page.locator("img").count()==2
     assert page.locator("img").evaluate_all("xs => xs.every(x => x.src.startsWith('data:image/jpeg;base64,'))")
+    page.get_by_label("Photo labels for this case",exact=True).select_option("other")
+    expect(page.get_by_label("Before photo",exact=True)).to_be_visible()
+    expect(page.locator("img").first).to_have_attribute("alt","Before evidence for My bedroom My carpet")
+    expect(page.locator("#photo-context-help")).to_contain_text("timing is unverified")
+    page.get_by_role("button",name="Preview response draft").click()
+    expect(page.locator("#case-current-reply")).to_contain_text("Before/After (other comparison)")
     with page.expect_download() as download:
         page.get_by_role("button",name="Export current evidence bundle").click()
     private_path=OUT/"private-export.html";download.value.save_as(str(private_path))
     assert not requests, requests
     private_html=private_path.read_text();assert hashlib.sha256(first.read_bytes()).hexdigest() in private_html
     assert "were not uploaded or analysed by AI" in private_html
+    assert 'alt="Before: My carpet"' in private_html and 'alt="After: My carpet"' in private_html
+    assert "timing is unverified" in private_html and "Before/After (other comparison)" in private_html
     assert "&lt;script&gt;" in private_html
     privatepage=context.new_page();privatepage.goto(private_path.as_uri(),wait_until="networkidle")
     assert privatepage.locator("script").count()==0 and privatepage.locator("img").count()==2
     assert privatepage.locator("img").evaluate_all("xs => xs.every(x => x.complete && x.naturalWidth > 0)")
     page.screenshot(path=str(OUT/"private-desktop.png"),full_page=True)
     check("personal photo selection, note entry and export make zero network requests; hashes match originals; HTML is escaped")
+    check("other comparison changes existing photo alt text and exported draft/captions without requests")
+    page.get_by_label("Photo labels for this case",exact=True).select_option("tenancy")
+    expect(page.locator("img").first).to_have_attribute("alt","Move-in evidence for My bedroom My carpet")
     # Hostile headers are refused before decode, no app crash.
     png=bytearray(33);png[:8]=bytes([137,80,78,71,13,10,26,10]);png[8:12]=struct.pack(">I",13);png[12:16]=b"IHDR";png[16:20]=struct.pack(">I",100000);png[20:24]=struct.pack(">I",100000)
     page.get_by_label("Move-in photo",exact=True).set_input_files({"name":"oversized.png","mimeType":"image/png","buffer":bytes(png)})
@@ -114,6 +125,12 @@ with sync_playwright() as p:
     expect(mp.locator("#case-current-reply")).to_contain_text("willing to discuss")
     mp.screenshot(path=str(OUT/"sample-mobile.png"),full_page=True)
     check("390px mobile layout has no horizontal overflow; response and draft controls work")
+    mp.once("dialog",lambda dialog:dialog.accept());mp.get_by_role("button",name="Start a private case").click()
+    mp.get_by_label("Photo labels for this case",exact=True).select_option("other")
+    assert mp.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),"Private mobile horizontal overflow"
+    expect(mp.get_by_label("Before photo",exact=True)).to_be_visible()
+    mp.screenshot(path=str(OUT/"private-other-mobile.png"),full_page=True)
+    check("390px private context selector and unverified timing fit without overflow")
     assert not errors, errors
     check("no uncaught browser errors")
     (OUT/"results.json").write_text(json.dumps({"checks":checks,"browser_errors":errors},indent=2))

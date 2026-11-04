@@ -30,7 +30,7 @@ export async function extractItems(videoUrl: string, visit: Item["visit"], room:
   return items;
 }
 
-// Stage 3: matching lives in ./matching (label + appearance + position, mutually unique best).
+// Stage 3: matching lives in ./matching (label + optional appearance, mutually unique best; no unregistered position).
 export { matchItems, changeStatus, normLabel } from "./matching";
 
 // Stage 4: judge each pair. Muse Spark classifies (schema-validated, one retry); guidance.ts apportions deterministically.

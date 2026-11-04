@@ -11,14 +11,14 @@ Fair Wear is an evidence-review prototype. It separates three questions that a m
 `lib/decisions.ts` supplies deterministic starting choices, independent of any cost calculation:
 
 - Fair wear, mould cleaning, and damage below 90% model confidence: **Dispute**.
-- Other cleaning and damage at or above 90%: **Agree**.
+- Other cleaning and damage at or above 90%: **Discuss after evidence**.
 - No change: **Not claimed**.
 - Unresolved comparisons: **Dispute** pending comparable records and human review, with no replacement-life illustration. An absent observation is not proof that an item is missing or added.
 - Invalid damage confidence and unspecified verdicts: **Dispute** for review.
 
 These are suggestions, not user consent or findings of liability. The model's confidence is uncalibrated; 90% is a review-rule threshold, not evidence of 90% accuracy. The display avoids rounding an under-threshold value up to 90%.
 
-The reviewer can change any response. Filters do not remove decisions from the current draft. Not claimed omits an item. The public sample board on `/demo` and `/upload` shares response choices in browser session storage, so navigation and reload in the same tab preserve them. Reset suggested responses removes those saved choices. Browser session restore can preserve session storage after a tab is closed; this is not a promise of deletion on close. No cross-device or cross-tab synchronisation is provided.
+The reviewer can change or explicitly confirm any response. Untouched included suggestions generate neutral Review pending evidence requests, not first-person decisions. Filters do not remove decisions from the current draft. Not claimed omits an item. The public sample board on `/demo` and `/upload` shares response choices in browser session storage, so navigation and reload in the same tab preserve them. Reset suggested responses removes those saved choices. Browser session restore can preserve session storage after a tab is closed; this is not a promise of deletion on close. No cross-device or cross-tab synchronisation is provided.
 
 Only allowlisted public sample finding references and valid response choices are saved, with a schema version and sample-compatibility fingerprint. Photos, personal case fields and notes never enter this store. Changed sample data, malformed records, unknown references and invalid choices are ignored. Generic boards and private cases do not opt into sample persistence. If storage is blocked or a write fails, review still works in memory and the UI explains that choices may be lost on navigation or reload. A failed reset explicitly warns that old saved choices could reappear and offers a retry.
 
@@ -26,11 +26,11 @@ Only allowlisted public sample finding references and valid response choices are
 
 The sample review contains 20 findings; Case builder intentionally uses only three fictional proposed deductions: bedroom carpet (£480), kitchen oven (£80) and bathroom bath (£350). **Continue to case builder** explicitly starts a fresh sample case. Before navigating, it discloses this limited scope and the mapping:
 
-- A changed **Dispute** response becomes **Question this deduction**.
-- A changed **Agree** response becomes **Discuss after evidence**, not acceptance of responsibility or an amount.
-- A changed **Not claimed** response becomes **Leave out of response**, excluding the item and its photos from the export.
+- An explicitly selected **Dispute** response becomes **Question this deduction**.
+- An explicitly selected **Discuss after evidence** response becomes **Discuss after evidence**, not acceptance of responsibility or an amount.
+- An explicitly selected **Not claimed** response becomes **Leave out of response**, excluding the item and its photos from the export.
 
-Only explicit changed responses for those exact three public references carry over. Unchanged board suggestions are not treated as reviewed choices; untouched builder items start as Question this deduction. Other findings remain on the board. The destination reports how many responses transferred, and each transferred item labels its starting choice separately from its editable current response and unchanged model suggestion. The portable HTML retains those distinctions. No model inference is performed.
+Only changed or explicitly confirmed responses for those exact three public references carry over. Confirming an unchanged suggestion records it as a choice; Undo confirmation returns it to suggested-only status. The board shows how many of the three responses are ready before continuing. Untouched board suggestions are not treated as reviewed choices; untouched builder items start as Question this deduction. Other findings remain on the board. The destination reports how many responses transferred, and each transferred item labels its starting choice separately from its editable current response and unchanged model suggestion. The portable HTML retains those distinctions. No model inference is performed.
 
 An allowlisted snapshot of public references and decision enums is written only when Continue is pressed. A random one-use token binds that snapshot to the destination URL; the payload also requires the current schema and sample revision. The destination consumes the snapshot and removes the URL marker. Missing, incompatible, reused or malformed handoffs leave the starting case unchanged with a visible warning. Extra fields and unknown references cannot enter the case. Repeated clicks are guarded. Cancel handoff, changing a response or resetting board choices clears an abandoned snapshot and re-enables Continue after interrupted navigation. Clearing the snapshot does not promise to stop browser navigation that has already begun. Storage failure keeps the source page and its current choices available for retry.
 
@@ -65,6 +65,6 @@ The eight-change generated test found six changes and four exact verdicts, inclu
 
 ## Draft and verification limits
 
-The current response draft is generated locally from the selected choices. It requests evidence and costs, does not accept numerical liability, and is never sent automatically. Copy and download export that current text, not the archived model reply.
+The current response draft is generated locally from explicit choices and neutral evidence requests for untouched suggestions. The legacy Agree storage key is retained for compatibility, but always displayed as Discuss after evidence. It requests evidence and costs, does not accept numerical liability, and is never sent automatically. Copy and download export that current text, not the archived model reply.
 
 Offline tests cover thresholds, invalid inputs, assumption propagation, current-draft choices, evidence references and error handling. DOM interaction tests mock native clipboard, download and dialog APIs. They do not establish real-browser focus behavior, responsive rendering or visual accessibility. Use the included browser suite in a browser-capable environment before treating those behaviors as verified.

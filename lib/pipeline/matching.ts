@@ -1,6 +1,6 @@
-// Stage 3: match the same object across visits.
-// Score = label agreement (exact or synonym) + appearance cosine (when an embedding is
-// present) + where it sits in the frame. Accept only mutually unique best candidates.
+// Stage 3: propose conservative cross-visit correspondences, not verified physical identity.
+// Score = label agreement + optional appearance cosine. Unregistered frame positions
+// cannot identify an object across cameras/visits. Accept only mutually unique best candidates.
 import type { Item, MatchedPair, MatchingResult, UnresolvedCorrespondence } from "./types";
 
 const SYNONYMS: Record<string, string> = {
@@ -29,11 +29,6 @@ export function cosine(a?: number[], b?: number[]): number | undefined {
   return na && nb ? d / Math.sqrt(na * nb) : undefined;
 }
 
-function centre(i: Item) {
-  const b = i.box; if (!b) return undefined;
-  return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2] as const;
-}
-
 export function pairScore(b: Item, a: Item): number {
   if (b.room !== a.room) return 0;
   const ls = labelScore(b.label, a.label);
@@ -41,8 +36,8 @@ export function pairScore(b: Item, a: Item): number {
   let s = ls;
   const c = cosine(b.embedding, a.embedding);
   if (c !== undefined) s += c;              // appearance agreement, 0..1
-  const cb = centre(b), ca = centre(a);
-  if (cb && ca) s += 0.25 * (1 - Math.min(1, Math.hypot(cb[0] - ca[0], cb[1] - ca[1]))); // normalised coords
+  // Boxes are crop locations only. No verified registration exists in this pipeline;
+  // position must not break same-label ties, even in nominally fixed-camera inputs.
   return s;
 }
 

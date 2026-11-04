@@ -1,0 +1,37 @@
+import assert from "node:assert/strict";
+import React from "react";
+// @ts-expect-error React DOM runtime is installed without its optional types.
+import { renderToStaticMarkup } from "react-dom/server";
+import { JSDOM } from "jsdom";
+import Home from "../app/page";
+import JudgeWalkthrough from "../components/JudgeWalkthrough";
+import SampleComparison from "../components/SampleComparison";
+import DemoEvaluation from "../components/DemoEvaluation";
+import { demoFindings } from "../lib/demo";
+import { evidenceFindingFromHash } from "../lib/evidence-navigation";
+import { readFileSync } from "node:fs";
+Object.assign(globalThis, { React });
+const doc = new JSDOM(renderToStaticMarkup(<JudgeWalkthrough />)).window.document;
+assert.ok(doc.querySelector("details > summary"), "Native disclosure is keyboard-accessible without JavaScript");
+assert.equal(doc.querySelector("details")!.open, false, "Tour starts collapsed");
+assert.equal(doc.querySelectorAll("ol > li").length, 3);
+const links = [...doc.querySelectorAll("a")].map(a => a.getAttribute("href")!);
+assert.ok(links.includes("/inspect"));
+assert.ok(links.includes("/case-builder"));
+const threshold = links.find(link => link.startsWith("/inspect#"))!.split("#")[1];
+assert.ok(readFileSync("components/inspection/EvidenceLab.tsx", "utf8").includes(`id="${threshold}"`), "Threshold link targets an existing heading");
+const finding = new URL(links.find(link => link.startsWith("/demo#"))!, "https://example.test");
+assert.equal(evidenceFindingFromHash(finding.hash, demoFindings.map(f => f.id)), "bedroom-carpet-0-0");
+assert.match(doc.body.textContent!, /Nothing is sent/);
+assert.match(doc.body.textContent!, /Lab notes stay separate/);
+assert.match(doc.body.textContent!, /export before leaving/);
+const comparison = renderToStaticMarkup(<SampleComparison />);
+assert.match(comparison, /Disagrees with planted test intent/);
+assert.doesNotMatch(comparison, /Known model error/);
+assert.match(renderToStaticMarkup(<DemoEvaluation />), /Planted intent is not independent annotation/);
+console.log("PASS walkthrough: native disclosure, valid navigation, separate review state, export caveats and qualified test-intent language");
+
+const homeText = new JSDOM(renderToStaticMarkup(<Home />)).window.document.body.textContent!;
+assert.match(homeText, /Choose Discuss after evidence, Dispute, or Not claimed/);
+assert.doesNotMatch(homeText, /Choose Agree|provisional agreement/);
+console.log("PASS homepage uses current visible review choices without implying agreement");
