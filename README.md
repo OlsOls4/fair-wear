@@ -31,6 +31,8 @@ The review UI extends the public 30 Oct version (`fb0dd3a`) and preserves its or
 
 See [review method and assumptions](docs/review-method.md) for the separation between model classification, response choices and cost illustrations.
 
+Run `npm run check` for the combined type, review UI, Evidence Lab, source-integrity and private Case Builder checks. The production build and real-browser checks remain separate.
+
 Offline checks (no model calls):
 
 ```sh
@@ -57,3 +59,9 @@ Hackathon rules require new work. Before kickoff (15 Oct 2026) I wrote the plan 
 - 29 Oct: judge prompt + JSON-schema validation of Muse Spark output (one retry), deterministic useful-life apportionment (`guidance.ts`, `npx tsx scripts/test-judge.ts`), 10 hand-labelled synthetic cases (`eval/judge/cases.json`), findings board + upload flow + reply-draft UI (sample data clearly labelled; real model runs pending key access).
 - 29 Oct (later): first real end-to-end runs. Simulated demo flat (4 rooms, 8 planted changes incl. 2 fair-wear decoys) generated with Muse Image (`scripts/gen-flat.ts`); SAM 3.1 image segmentation (streamed) -> matching -> Muse Spark judging via `scripts/run-demo.ts`; scored against the planted truth with `scripts/eval-flat.ts` (6/8 changes detected, 4/8 exact verdicts, 3/4 real damage found, 1/2 fair-wear decoys wrongly called damage, 1 false alarm; the misses are published). The live site serves this pre-computed output; the Meta key is never on the public site. Total model spend so far about $0.51 of free credits.
 - 30 Oct: evidence pack. `scripts/make-reply.ts` has Muse Spark write the line-by-line reply to the landlord from the real findings; `scripts/build-pack.py` renders side-by-side move-in/move-out comparison cards and a downloadable PDF evidence pack (summary table, cards, reply). Findings board links the PDF and shows the Muse Spark reply. Spend so far about $0.54 of free credits; Billing still shows nothing owed.
+
+## Evidence Lab
+
+`/inspect` traces the generated room inputs, actual saved crop pairs, exact recorded model claims and separate human review choices. Its confidence-threshold sandbox exposes the tradeoff between fewer mistaken flags and lost correct signals; it does not rerun models or claim improved accuracy. A deterministic SHA-256 manifest and optional in-browser verification cover all 51 source files, without pretending that missing SAM masks or raw API traces exist.
+
+Run `npm run evidence:check`, `npm run test:evidence`, and `npm run test:evidence:dom` for offline verification. See [Evidence Lab design and reproduction](docs/evidence-lab.md) for provenance limits, scoring semantics, exports and optional browser checks. Source demo artifacts remain unchanged.

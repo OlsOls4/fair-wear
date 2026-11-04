@@ -1,13 +1,19 @@
 import { demoEvaluation as ev } from "@/lib/demo";
 
 export default function DemoEvaluation() {
-  return <section className="card" style={{ margin: "12px 0" }} aria-label="Published evaluation on generated imagery">
-    <b>Real pipeline evaluation: 4 generated rooms, 8 planted changes</b>
-    <div className="meta">Detected {ev.detected}/{ev.planted} · exact verdict {ev.exactVerdict}/{ev.planted} · damage found {ev.damageFound}/{ev.damagePlanted} · fair-wear decoys called damage {ev.decoysWronglyDamage}/{ev.decoys} · false alarms on unplanted items {ev.falseAlarms}/{ev.unplantedItemsChecked}.</div>
+  return <section id="sample-evaluation" className="evaluation-panel" aria-label="Published evaluation on generated imagery">
+    <div className="evaluation-heading"><div><p className="eyebrow">The published test, including the misses</p><h2>Real pipeline evaluation: 4 generated rooms, 8 planted changes</h2></div><span className="sample-stamp">Not a real-world accuracy claim</span></div>
+    <div className="evaluation-metrics">
+      <div><strong>{ev.detected}<span>/{ev.planted}</span></strong><span>Changes detected</span></div>
+      <div><strong>{ev.exactVerdict}<span>/{ev.planted}</span></strong><span>Exact verdicts</span></div>
+      <div><strong>{ev.damageFound}<span>/{ev.damagePlanted}</span></strong><span>Damage found</span></div>
+      <div><strong>{ev.decoysWronglyDamage}<span>/{ev.decoys}</span></strong><span>Fair-wear decoys called damage</span></div>
+      <div><strong>{ev.falseAlarms}<span>/{ev.unplantedItemsChecked}</span></strong><span>False alarms on unplanted items</span></div>
+    </div>
     <p className="meta">These are results on generated scenes, not accuracy estimates for real homes or determinations of tenant responsibility. The known errors below are also flagged on matching finding cards.</p>
-    <ul className="meta">
-      {ev.rows.filter((row) => !row.exact).map((row) => <li key={`${row.room}/${row.item}`}>{row.room} {row.item}: planted {row.planted.replaceAll("_", " ")}; {row.got === "not_segmented" ? "not segmented, so no finding card was produced" : `model reported ${row.got.replaceAll("_", " ")}`}.</li>)}
-      {ev.falseAlarmItems.map((item) => <li key={item}>False alarm: {item.replaceAll("_", " ")}.</li>)}
-    </ul>
+    <details className="evaluation-errors"><summary>Inspect the known errors and missed changes <span aria-hidden="true">+</span></summary><ul>
+      {ev.rows.filter((row) => !row.exact).map((row) => <li key={`${row.room}/${row.item}`}><b>{row.room} {row.item}:</b> planted {row.planted.replaceAll("_", " ")}; {row.got === "not_segmented" ? "not segmented, so no finding card was produced" : `model reported ${row.got.replaceAll("_", " ")}`}.</li>)}
+      {ev.falseAlarmItems.map((item) => <li key={item}><b>False alarm:</b> {item.replaceAll("_", " ")}.</li>)}
+    </ul></details>
   </section>;
 }

@@ -16,16 +16,15 @@ export default function Upload() {
   const [showSample, setShowSample] = useState(false);
 
   return (
-    <main className="wrap">
-      <a href="/">← Fair Wear</a>
-      <h1 style={{ fontSize: 34 }}>Explore a sample comparison</h1>
+    <main id="main-content" className="wrap workflow-page">
+      <div className="page-heading"><div><p className="eyebrow">Behind the comparison</p><h1>Explore a sample comparison</h1><p>From two visits to a response you can review.</p></div><a className="text-link" href="/demo">Go to the findings <span aria-hidden="true">↗</span></a></div>
       <div className="banner">Generated test images · Real model results. Muse Image created the test scenes; SAM 3.1 and Muse Spark analysed them beforehand in an offline run. No live model calls happen here. No personal videos are requested or analysed.</div>
-      <section aria-labelledby="sample-workflow-title" style={{ margin: "24px 0" }}>
+      <section className="workflow-section" aria-labelledby="sample-workflow-title">
         <h2 id="sample-workflow-title">How a comparison is structured</h2>
         <p>These stages explain the workflow. They are illustrative, not a live analysis or progress indicator.</p>
-        <ol style={{ lineHeight: 1.7 }}>
-          {STAGES.map(({ title, description }) => (
-            <li key={title} style={{ marginBottom: 10 }}><b>{title}.</b> {description}</li>
+        <ol className="workflow-steps">
+          {STAGES.map(({ title, description }, index) => (
+            <li key={title}><span className="step-number" aria-hidden="true">0{index + 1}</span><div><h3>{title}</h3><p>{description}</p></div></li>
           ))}
         </ol>
       </section>

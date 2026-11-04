@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import Board from "../components/Board";
 import Sample from "../app/upload/page";
 import Home from "../app/page";
+import SiteHeader from "../components/SiteHeader";
 import { demoData, demoFindings } from "../lib/demo";
 
 async function main() {
@@ -42,6 +43,12 @@ async function main() {
   function summary() { return host.querySelector('[data-testid="decision-summary"]')!.textContent!; }
   const cleaning = demoFindings.find((f) => f.verdict === "cleaning" && !/mou?ld/i.test(f.description))!;
   const noChange = demoFindings.find((f) => f.verdict === "no_change")!;
+  await act(async () => root.render(<SiteHeader />));
+  ok("shared navigation exposes all four workflows without duplicate links", () => {
+    const links = Array.from(host.querySelectorAll('nav[aria-label="Main navigation"] a'));
+    assert.deepEqual(links.map((link) => link.getAttribute("href")), ["/upload", "/inspect", "/case-builder", "/demo"]);
+    assert.equal(host.querySelectorAll('[aria-label="Fair Wear home"]').length, 1);
+  });
   await act(async () => root.render(<Home />));
   ok("homepage separates generated inputs from real offline model results", () => {
     assert.equal(demoData.source, "pipeline-run");
@@ -55,6 +62,46 @@ async function main() {
     assert.equal(primary.getAttribute("href"), "/demo");
     assert.equal(primary.textContent, "Try the sample review");
     assert.equal(Array.from(host.querySelectorAll("a")).find((link) => link.textContent === "How it works")!.getAttribute("href"), "/upload");
+  });
+  ok("sample comparison begins with real existing generated images and an accessible native slider", () => {
+    const comparison = host.querySelector(".sample-comparison")!;
+    assert.equal(comparison.querySelectorAll("img").length, 2);
+    assert.equal(comparison.querySelector("img")!.getAttribute("src"), "/demo/flat/living-room-move-in.jpg");
+    const slider = comparison.querySelector<HTMLInputElement>('input[type="range"]')!;
+    assert.equal(slider.value, "50");
+    assert.equal(slider.getAttribute("aria-valuetext"), "50% move-in, 50% move-out");
+    assert.match(document.getElementById(slider.getAttribute("aria-describedby")!)!.textContent!, /not an aligned measurement/);
+    assert.equal(comparison.querySelectorAll('[aria-label="Choose a sample room"] button').length, 4);
+  });
+  await click("Move-in");
+  ok("move-in preset exposes the full before view", () => {
+    assert.equal(host.querySelector<HTMLInputElement>('input[type="range"]')!.value, "100");
+    assert.equal(button("Move-in").getAttribute("aria-pressed"), "true");
+    assert.equal((host.querySelector(".scene-tag-after") as HTMLElement).hidden, true);
+  });
+  await click("Move-out");
+  ok("move-out preset exposes the full after view", () => {
+    assert.equal(host.querySelector<HTMLInputElement>('input[type="range"]')!.value, "0");
+    assert.equal(button("Move-out").getAttribute("aria-pressed"), "true");
+    assert.equal((host.querySelector(".scene-tag-before") as HTMLElement).hidden, true);
+  });
+  for (const [room, path, note] of [["Bedroom", "bedroom", /planted as fair wear/], ["Kitchen", "kitchen", /Neither suggestion establishes/], ["Bathroom", "bathroom", /not segmented/], ["Living room", "living-room", /model flagged carpet damage/]] as const) {
+    await click(room);
+    ok(`${room} selector changes both images and explains the sample truthfully`, () => {
+      assert.equal(button(room).getAttribute("aria-pressed"), "true");
+      assert.equal(host.querySelector(".comparison-scene img")!.getAttribute("src"), `/demo/flat/${path}-move-in.jpg`);
+      assert.equal(host.querySelector(".comparison-after")!.getAttribute("src"), `/demo/flat/${path}-move-out.jpg`);
+      assert.match(host.querySelector(".comparison-finding")!.textContent!, note);
+      assert.equal(host.querySelector<HTMLInputElement>('input[type="range"]')!.value, "50");
+    });
+  }
+  await click("Move-out");
+  await click("Compare");
+  ok("compare preset restores an equal split after repeated interactions", () => {
+    assert.equal(host.querySelector<HTMLInputElement>('input[type="range"]')!.value, "50");
+    assert.equal(button("Compare").getAttribute("aria-pressed"), "true");
+    assert.equal((host.querySelector(".scene-tag-before") as HTMLElement).hidden, false);
+    assert.equal((host.querySelector(".scene-tag-after") as HTMLElement).hidden, false);
   });
   await act(async () => root.render(<Board property={demoData.property} findings={demoFindings} reply="ARCHIVE SENTINEL" pdf="/original.pdf" />));
   ok("exact default counts", () => assert.equal(summary(), "Agree: 2Dispute: 5Not claimed: 13"));

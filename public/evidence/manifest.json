@@ -1,0 +1,288 @@
+{
+  "format": "fair-wear-evidence-manifest/v1",
+  "snapshotId": "f48c86061e464486485e6bed20356d36fb7bf98b0667d2992cdc2c9848e2d12f",
+  "scope": "Byte integrity of the generated input images, saved crop pairs, recorded findings, published evaluation and planted test design. Not an external attestation of model execution or correctness.",
+  "sourceType": "generated-images-real-recorded-model-results",
+  "availability": {
+    "generatedRoomImages": true,
+    "savedCropPairs": true,
+    "parsedJudgeResults": true,
+    "plantedTestDesign": true,
+    "rawSamResponses": false,
+    "samMasks": false,
+    "originalSamBoxes": false,
+    "rawJudgeApiEnvelopes": false
+  },
+  "sourceModels": [
+    {
+      "name": "Muse Image",
+      "role": "Generated simulated room images; test intent is not a pixel-level ground truth annotation."
+    },
+    {
+      "name": "SAM 3.1",
+      "role": "The recorded pipeline used segmentation to prepare matched crops; raw masks and boxes were not persisted."
+    },
+    {
+      "name": "Muse Spark",
+      "role": "Recorded change descriptions, labels and self-reported confidence for saved crop pairs."
+    }
+  ],
+  "derivation": "Group by room and normalized item label using lib/pipeline/matching.ts. A planted item is detected if any retained crop flags a change; exact if any has the expected label. Count false alarms per unplanted crop observation. Thresholds filter self-reported confidence, not pixels or model outputs.",
+  "sources": [
+    {
+      "url": "/demo/flat-eval.json",
+      "bytes": 1364,
+      "sha256": "a83128edee2dc17a87cb64755f7aabcf69dffe482f9370fad3a54b53684fb9d3"
+    },
+    {
+      "url": "/demo/flat-results.json",
+      "bytes": 11252,
+      "sha256": "c52b76e75b35dd27c1ea8cf2fe16d160f6c423a16cd54259a788e422190a730d"
+    },
+    {
+      "url": "/demo/flat/bathroom-move-in.jpg",
+      "bytes": 87029,
+      "sha256": "fa03184d0e4077e6189fb3dd4f45cebae09aabdc8dfb97f7fbf9fe9bdcd514df"
+    },
+    {
+      "url": "/demo/flat/bathroom-move-out.jpg",
+      "bytes": 91118,
+      "sha256": "f61c93750c56d2a45e21afa57cc1177511c8b9e556ff12bb3d52aa0d03dce024"
+    },
+    {
+      "url": "/demo/flat/bedroom-move-in.jpg",
+      "bytes": 85702,
+      "sha256": "5582672e2b763fbae06ab23dce5b2d2121e0c21eeca008790afc4162622a5491"
+    },
+    {
+      "url": "/demo/flat/bedroom-move-out.jpg",
+      "bytes": 86560,
+      "sha256": "7e5ee75203a7625f36742eb3388dd501ad0650f0f0df2ba037ecc5677d4be3f2"
+    },
+    {
+      "url": "/demo/flat/crops/bathroom-move_in-bath-0.jpg",
+      "bytes": 17110,
+      "sha256": "91d352a83d4a862cb98cd62354569788005744035525f6fd9179b4f48672a3b4"
+    },
+    {
+      "url": "/demo/flat/crops/bathroom-move_in-toilet-0.jpg",
+      "bytes": 4364,
+      "sha256": "cae19e2cf0fa2b80245cd90bb6649b7b94e480d78f8f5e0d3bb140dd36f4d097"
+    },
+    {
+      "url": "/demo/flat/crops/bathroom-move_out-bath-0.jpg",
+      "bytes": 19986,
+      "sha256": "be9fa42e66ab6dd10ed8384f6610bfa53f1468f20a545b076564dc8042a9f93c"
+    },
+    {
+      "url": "/demo/flat/crops/bathroom-move_out-toilet-0.jpg",
+      "bytes": 4527,
+      "sha256": "a220407fc457c96589d80e2740f15e9bab6793c56c7c608a128031a04f3427cb"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-carpet-0.jpg",
+      "bytes": 19919,
+      "sha256": "6eca41ba5b986b880eeba09d2c5aaf967e7f5f5e39c7334d02b5a373c97ac186"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-curtain-0.jpg",
+      "bytes": 5000,
+      "sha256": "f07cd801bcd521fbf8a2df46594c057a7604a4613e9142149be04267b63b7352"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-curtain-1.jpg",
+      "bytes": 3347,
+      "sha256": "bdd943b4329c610085d487316a90604a02da6a781734599d7233478eb31628d3"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-wall-0.jpg",
+      "bytes": 12922,
+      "sha256": "3127b7aa00254201e78f424e8cf830e2375a9fe9dce650ffedd7ab16f1fa5853"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-wall-1.jpg",
+      "bytes": 12247,
+      "sha256": "b0a59e2220c7f378765854dfde332096f1dc0e9b1f9b2c14d40e52eee73ce7d8"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-wall-2.jpg",
+      "bytes": 27633,
+      "sha256": "aa42adf95c95d9c442f21d89a787077d0d4d89de98df7b807156d3fe032c3e1e"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_in-wardrobe-0.jpg",
+      "bytes": 12960,
+      "sha256": "bae42d4fef76e3133e3f9d5937f1323b8b189183d117944ad11ed072f0695b38"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-carpet-0.jpg",
+      "bytes": 20050,
+      "sha256": "58bdd9bccb270653a4b22b699dac47737e214070bf6656cdde417bc2efe302cf"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-curtain-0.jpg",
+      "bytes": 5118,
+      "sha256": "4ff3b2c36f6b0d315536a38708a36cd655ca12b6bf3223260059afd3fc06d1a5"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-curtain-1.jpg",
+      "bytes": 3217,
+      "sha256": "d76b9a5577b211cbc9ccc72b70a97f1841eb5c8c6c1b04daa556f6ea541a9517"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-wall-0.jpg",
+      "bytes": 28283,
+      "sha256": "4a475d2c395c6b8cefe5b67affca4b189885f95b8e284e944bd7ab81f2904fd4"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-wall-1.jpg",
+      "bytes": 13387,
+      "sha256": "6a0d4b5f8b5f0374450bdcd0861302b6ef1d992b4ef8b76594873ac2d34e0aa1"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-wall-2.jpg",
+      "bytes": 12249,
+      "sha256": "f1a9509874ed5e4447eecc36bd1d7dd8f2b5ffe2308237b555ab3f072af1bf49"
+    },
+    {
+      "url": "/demo/flat/crops/bedroom-move_out-wardrobe-0.jpg",
+      "bytes": 13659,
+      "sha256": "23ace0c9217b2f02e1dd4673e7748298a6c7e300b0af944eea1e3fb032c4b14e"
+    },
+    {
+      "url": "/demo/flat/crops/kitchen-move_in-oven-0.jpg",
+      "bytes": 11249,
+      "sha256": "8d304ac9585cec3ca2c45dde8a6ac910323cc21958e2e33449d6090572dbe61e"
+    },
+    {
+      "url": "/demo/flat/crops/kitchen-move_in-sink-0.jpg",
+      "bytes": 2131,
+      "sha256": "9d90c2ff8813b94452985af92898e6db037bf7000f5a4554d7c1ab0920cfc1c9"
+    },
+    {
+      "url": "/demo/flat/crops/kitchen-move_in-worktop-0.jpg",
+      "bytes": 22633,
+      "sha256": "4a3e2f719769a82005e7245b4b3034250fae9eb497f1e02be05d5f0f826c7569"
+    },
+    {
+      "url": "/demo/flat/crops/kitchen-move_out-oven-0.jpg",
+      "bytes": 13251,
+      "sha256": "134c94ab88c8375efb7bf2e26c7cf9c23aca8dfae1124159786bd4769fb4fa56"
+    },
+    {
+      "url": "/demo/flat/crops/kitchen-move_out-sink-0.jpg",
+      "bytes": 2132,
+      "sha256": "f5623fb098bca7777f6b0bb31e1b61644f306c5935567a3b08eff3e2781057d9"
+    },
+    {
+      "url": "/demo/flat/crops/kitchen-move_out-worktop-1.jpg",
+      "bytes": 23392,
+      "sha256": "68c58736a0d3687406a9e28b29e24fc81a1e99419c80dd7506a01ab93516777a"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-carpet-0.jpg",
+      "bytes": 8015,
+      "sha256": "bbcd0e87d2d40f389fbf01882a81fc68b64a4864e19aee93af9b6db28eb08ff2"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-carpet-1.jpg",
+      "bytes": 32154,
+      "sha256": "c3f4559a238ffee4ce2715b0cf6a1617070150c180d6bf824de4273002c3cdfe"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-curtain-0.jpg",
+      "bytes": 5427,
+      "sha256": "4f8f320c9617782f10b251d0d60dd03acdd0923b0b83c98f8a180882ba44575a"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-curtain-1.jpg",
+      "bytes": 6221,
+      "sha256": "4eee9a9df75613c55099dcfb7a4cb0d0b2d40781957390717550cfbc644889d1"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-wall-0.jpg",
+      "bytes": 29929,
+      "sha256": "d3c7772b0bb646da8d56c4dec3a3a692020523748b991fb8e7318982db0ce41e"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-wall-1.jpg",
+      "bytes": 31916,
+      "sha256": "c2487811c78b75193fb9b89e322722edd129ab9e56637a4cddddb751d295b882"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-wall-2.jpg",
+      "bytes": 13765,
+      "sha256": "5064cffc027e986dd4b92a1bbbdf9f73dd367015e3220ee95fc57c9341c7f2b2"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_in-wall-3.jpg",
+      "bytes": 8495,
+      "sha256": "6493f4f2265323bb6c554cb0f2d8c5c3c63b697e823ddfde7080e2377a38b326"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-carpet-0.jpg",
+      "bytes": 7659,
+      "sha256": "8634f2c3842f6381d95ebcac53c3ec94dd6381623bbfd6a066f63dfd68dccf99"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-carpet-1.jpg",
+      "bytes": 32525,
+      "sha256": "9a28c74daaa4faa312c0192146d2251e423d7e993038a9eabad8d3378f41a8e6"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-curtain-0.jpg",
+      "bytes": 5439,
+      "sha256": "c2512b5c90e1a5eb281f1ee35c633a722624306ba74d29b8654035aab2abb67d"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-curtain-1.jpg",
+      "bytes": 6186,
+      "sha256": "941b6f07386b8920003acb983a5f2eb090e97667f2a32b7d2122c92ef3f9b813"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-wall-0.jpg",
+      "bytes": 30182,
+      "sha256": "1c720c4aef5b833ba42ff9423f11e701af10682c0222194d82ecb04ae71c6a04"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-wall-1.jpg",
+      "bytes": 32486,
+      "sha256": "1ff227e6ca02b763fdaf79f653ce10d01f655aa46881830eb224158efe75da78"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-wall-3.jpg",
+      "bytes": 14016,
+      "sha256": "7afd86ccae803e177e458305f0e99902ec05f1ec3447c058f7acc21016bf263d"
+    },
+    {
+      "url": "/demo/flat/crops/living-room-move_out-wall-4.jpg",
+      "bytes": 8677,
+      "sha256": "0faa7c499de62dee5b0275ee77edac1c48b5c94abea4e7573bc577492ad36d73"
+    },
+    {
+      "url": "/demo/flat/kitchen-move-in.jpg",
+      "bytes": 118447,
+      "sha256": "2bd5f4e7cb6996925963ef905dcff0e340be1d7dff4b9557a3bb6a95b03d05c1"
+    },
+    {
+      "url": "/demo/flat/kitchen-move-out.jpg",
+      "bytes": 122136,
+      "sha256": "c98947e13a11de258e0ec26c29a4e6c26e709b8b6a71a7475d9a562de47500b3"
+    },
+    {
+      "url": "/demo/flat/living-room-move-in.jpg",
+      "bytes": 117613,
+      "sha256": "14e0bbc77f927fda93982432e0bdc112eb70a4986f387750723aebe410307846"
+    },
+    {
+      "url": "/demo/flat/living-room-move-out.jpg",
+      "bytes": 117478,
+      "sha256": "edb7199ca6dc966358b708217067f23d28281ba0786a240159952d4461c8ee8b"
+    },
+    {
+      "url": "/evidence/planted.json",
+      "bytes": 1125,
+      "sha256": "5feef23e4d70d902b2fef214d66a78dee97f116475b8e8bd50aabdc098042eda"
+    }
+  ]
+}
