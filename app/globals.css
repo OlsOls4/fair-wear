@@ -299,3 +299,7 @@ pre.reply { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; backgr
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
 @media print { .site-header, .site-footer, .skip-link, button, .comparison-controls { display: none; } body { background: #fff; } .wrap, .home-wrap { padding: 0; } .card, .evaluation-panel { break-inside: avoid; } }
+
+.sample-case-handoff{margin-top:20px;padding-top:18px;border-top:1px solid var(--border,#d8dfd4)}
+.sample-case-handoff h3{margin:0 0 10px}
+.sample-case-handoff [role=status]:empty{display:none}

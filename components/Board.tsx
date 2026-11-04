@@ -5,6 +5,7 @@ import { replyDraft } from "@/lib/reply";
 import { confidenceLabel, type F } from "@/lib/findings";
 import { calculateShare } from "@/lib/pipeline/guidance";
 import { readSampleResponses, saveSampleResponses } from "@/lib/sample-review-session";
+import { prepareSampleCaseTransfer, SAMPLE_CASE_TRANSFER_KEY } from "@/lib/sample-case-transfer";
 import EvidencePair from "./EvidencePair";
 
 export type { F } from "@/lib/findings";
@@ -20,6 +21,9 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   const [sampleStorage, setSampleStorage] = useState<"loading" | "ready" | "unavailable">(rememberSampleResponses ? "loading" : "unavailable");
   const [resetStorageFailed, setResetStorageFailed] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [transferError, setTransferError] = useState("");
+  const [transferring, setTransferring] = useState(false);
+  const transferInFlight = useRef(false);
   const [navigationTarget, setNavigationTarget] = useState<{ findingId?: string } | null>(null);
   const findingRefs = useRef(new Map<string, HTMLElement>());
   const draftHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -40,7 +44,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
     restoreResponses();
     // A Back/Forward-cache restore does not remount React. Another sample page
     // may have changed or reset this tab's choices while this document slept.
-    function onPageShow(event: PageTransitionEvent) { if (event.persisted) restoreResponses(); }
+    function onPageShow(event: PageTransitionEvent) { if (event.persisted) { transferInFlight.current = false; setTransferring(false); setTransferError(""); restoreResponses(); } }
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);
   }, [rememberSampleResponses]);
@@ -81,20 +85,45 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   const shown = findings.filter((f) => filter === "all" || f.verdict === filter).sort((a, b) => ORDER.indexOf(a.verdict) - ORDER.indexOf(b.verdict));
   const draft = useMemo(() => replyDraft(property, findings, decisions), [property, findings, decisions]);
   function choose(id: string, decision: Decision) {
+    transferInFlight.current = false; setTransferring(false);
     const next = { ...decisions, [id]: decision };
     setDecisions(next);
     if (rememberSampleResponses) {
-      try { saveSampleResponses(window.sessionStorage, next); setSampleStorage("ready"); setResetStorageFailed(false); }
+      try { saveSampleResponses(window.sessionStorage, next); window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY); setSampleStorage("ready"); setResetStorageFailed(false); }
       catch { setSampleStorage("unavailable"); }
     }
     setCopyStatus("");
+    setTransferError("");
   }
   function resetResponses() {
+    transferInFlight.current = false; setTransferring(false);
     setDecisions({});
     setCopyStatus("");
+    setTransferError("");
     if (rememberSampleResponses) {
-      try { saveSampleResponses(window.sessionStorage, {}); setSampleStorage("ready"); setResetStorageFailed(false); }
+      try { saveSampleResponses(window.sessionStorage, {}); window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY); setSampleStorage("ready"); setResetStorageFailed(false); }
       catch { setSampleStorage("unavailable"); setResetStorageFailed(true); }
+    }
+  }
+  function continueToCase() {
+    if (transferInFlight.current) return;
+    transferInFlight.current = true; setTransferring(true);
+    try {
+      // Snapshot current in-memory choices, including edits after a storage failure.
+      const destination = prepareSampleCaseTransfer(window.sessionStorage, decisions, window.crypto.randomUUID());
+      window.location.assign(destination);
+    } catch {
+      transferInFlight.current = false; setTransferring(false);
+      setTransferError("Your choices could not be carried over in this browser. Stay here to keep reviewing, or open the case builder separately with its starting example responses.");
+    }
+  }
+  function cancelHandoff() {
+    transferInFlight.current = false; setTransferring(false);
+    try {
+      window.sessionStorage.removeItem(SAMPLE_CASE_TRANSFER_KEY);
+      setTransferError("Prepared handoff cleared. You can continue again. If navigation already started, the case will open without imported choices.");
+    } catch {
+      setTransferError("The prepared handoff could not be cleared. It may still be imported if navigation continues. Your review choices are unchanged.");
     }
   }
   async function copyDraft() {
@@ -137,6 +166,14 @@ export default function Board({ property, findings, banner, reply, pdf, remember
           {DECISIONS.map((decision) => <span key={decision}>{decision}: <b>{decisionCounts[decision]}</b></span>)}
         </div>
         <button className="chip" disabled={sampleStorage === "loading" || (!Object.keys(decisions).length && !resetStorageFailed)} onClick={resetResponses}>Reset suggested responses</button>
+        {rememberSampleResponses && <section className="sample-case-handoff" aria-label="Carry sample choices into a case">
+          <h3>Turn your review into an evidence bundle</h3>
+          <p>Continue with three fictional claims: bedroom carpet, kitchen oven and bathroom bath. Only responses you changed for these three items carry over. Other findings stay on this board; untouched suggestions are not treated as your choices.</p>
+          <p className="meta">Dispute becomes Question this deduction. Agree becomes Discuss after evidence. Not claimed becomes Leave out of response. Untouched claims start as Question this deduction. No charge is accepted. This starts a fresh sample case, not a private case. A one-time handoff saves only sample references and choices in this tab until the case opens; no photos or notes are copied.</p>
+          <button className="btn" disabled={sampleStorage === "loading" || transferring} onClick={continueToCase}>Continue to case builder</button>
+          {transferring && <button className="chip" onClick={cancelHandoff}>Cancel handoff</button>}
+          <p role="status">{transferError}</p>
+        </section>}
       </section>
       <div className="row" role="group" aria-label="Filter model verdicts">
         <button className={`chip ${filter === "all" ? "on" : ""}`} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All ({findings.length})</button>

@@ -15,7 +15,8 @@
     "test:evidence": "node --import tsx scripts/test-evidence.ts",
     "test:evidence:dom": "node --import tsx scripts/test-evidence-dom.tsx",
     "test:case": "node --import tsx scripts/test-case-builder.ts && node --import tsx scripts/test-image-dimensions.ts && node --import tsx scripts/test-case-builder-dom.tsx",
-    "check": "npm run typecheck && npm test && npm run test:ui:dom && npm run test:review-session && npm run test:evidence && npm run test:evidence:dom && npm run evidence:check && npm run test:case"
+    "check": "npm run typecheck && npm test && npm run test:ui:dom && npm run test:review-session && npm run test:sample-transfer && npm run test:evidence && npm run test:evidence:dom && npm run evidence:check && npm run test:case",
+    "test:sample-transfer": "node --import tsx scripts/test-sample-case-transfer.tsx"
   },
   "dependencies": {
     "next": "^15.5.28",
