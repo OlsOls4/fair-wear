@@ -121,18 +121,44 @@ async function main() {
     assert.equal(host.querySelectorAll('button[aria-label^="Confirm "]').length, demoFindings.length);
     assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), null);
   });
+  const cardContinue = (id: string) => host.querySelector<HTMLButtonElement>(`[data-finding-id="${id}"] .card-case-handoff button`);
+  await act(async () => cardContinue(carpet)!.click());
+  ok("card shortcuts exist only for supported claims and do not confirm pending suggestions", () => {
+    assert.equal(host.querySelectorAll(".card-case-handoff button").length, 3);
+    assert.equal(cardContinue(other), null);
+    assert.ok(cardContinue(carpet)!.disabled);
+    assert.equal(storage.getItem(KEY), null);
+    assert.equal(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY), null);
+    assert.match(host.querySelector(`[data-finding-id="${carpet}"] .card-case-handoff`)!.textContent!, /untouched claims start as Question/);
+  });
   await click("Confirm Dispute");
   ok("confirming unchanged Dispute records an explicit choice without changing the response", () => {
     assert.match(progress(), /1 of 3/);
     assert.deepEqual(JSON.parse(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY)!).responses, { [carpet]: "Dispute" });
     assert.match(text(), /confirmed suggestion/);
+    assert.doesNotMatch(host.querySelector(`[data-finding-id="${carpet}"] .card-case-handoff`)!.textContent!, /Confirm or change this response first/);
+  });
+  const navigationBeforeShortcut = attemptedNavigations;
+  await act(async () => { cardContinue(carpet)!.click(); cardContinue(carpet)!.click(); });
+  ok("confirmed Dispute shortcut uses the guarded shared handoff and exposes cancellation", () => {
+    assert.deepEqual(JSON.parse(storage.getItem(KEY)!).responses, { [carpet]: "Dispute" });
+    assert.equal(attemptedNavigations, navigationBeforeShortcut + 1);
+    assert.ok(cardContinue(carpet)!.disabled);
+    assert.equal(document.activeElement?.getAttribute("aria-label"), "Carry sample choices into a case");
+    assert.ok(button("Cancel handoff"));
+  });
+  await click("Cancel handoff");
+  ok("cancelling card handoff preserves explicit choice and re-enables its shortcut", () => {
+    assert.equal(storage.getItem(KEY), null);
+    assert.equal(cardContinue(carpet)!.disabled, false);
+    assert.deepEqual(JSON.parse(storage.getItem(SAMPLE_REVIEW_STORAGE_KEY)!).responses, { [carpet]: "Dispute" });
   });
   await mount(board);
   ok("confirmed suggestion survives reload-style mount", () => {
     assert.match(progress(), /1 of 3/);
     assert.ok(button("Undo confirmation"));
   });
-  await choose(oven, "Not claimed"); await click("Continue to case builder");
+  await choose(oven, "Not claimed"); await act(async () => cardContinue(oven)!.click());
   ok("mixed confirmed default and changed choice transfer together", () => {
     assert.deepEqual(JSON.parse(storage.getItem(KEY)!).responses, { [carpet]: "Dispute", [oven]: "Not claimed" });
   });
@@ -260,7 +286,11 @@ async function main() {
   ok("empty explicit handoff honestly reports no selected matches without importing suggestions", () => { assert.match(text(), /No selected responses matched/); assert.equal(response(), "question"); });
   Object.defineProperty(dom.window, "sessionStorage", { configurable: true, get() { throw new Error("denied"); } });
   dom.window.history.replaceState(null, "", "/demo"); await mount(board); await choose(carpet, "Not claimed");
-  const beforeDenied = attemptedNavigations; await click("Continue to case builder");
+  const beforeDenied = attemptedNavigations; await act(async () => cardContinue(carpet)!.click());
+  ok("failed card handoff focuses the shared error and retains its retry", () => {
+    assert.equal(document.activeElement?.getAttribute("aria-label"), "Carry sample choices into a case");
+    assert.equal(cardContinue(carpet)!.disabled, false);
+  });
   ok("unavailable storage keeps user on the Board and allows retry without losing current choices", () => { assert.match(text(), /could not be carried over/); assert.equal(attemptedNavigations, beforeDenied); assert.equal(button("Continue to case builder").disabled, false); assert.equal(host.querySelector<HTMLSelectElement>(`[data-finding-id="${carpet}"] select`)!.value, "Not claimed"); });
   dom.window.history.replaceState(null, "", freshUrl); await mount(<CaseBuilder sampleItems={samples} />);
   ok("destination storage failure leaves a usable unmodified case and visible explanation", () => { assert.match(text(), /No sample responses were imported/); assert.equal(response(), "question"); });

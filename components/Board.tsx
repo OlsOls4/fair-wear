@@ -28,6 +28,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   const [transferring, setTransferring] = useState(false);
   const [handoffCleanupFailed, setHandoffCleanupFailed] = useState(false);
   const transferInFlight = useRef(false);
+  const handoffRef = useRef<HTMLElement>(null);
   const [navigationTarget, setNavigationTarget] = useState<{ findingId?: string } | null>(null);
   const [evidenceTarget, setEvidenceTarget] = useState<string | null>(null);
   const [evidenceLinkError, setEvidenceLinkError] = useState("");
@@ -157,6 +158,9 @@ export default function Board({ property, findings, banner, reply, pdf, remember
   function continueToCase() {
     if (transferInFlight.current) return;
     transferInFlight.current = true; setTransferring(true);
+    // Keep the shared cancellation and error controls reachable from card shortcuts.
+    handoffRef.current?.focus({ preventScroll: true });
+    handoffRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
     try {
       // Snapshot current in-memory choices, including edits after a storage failure.
       const destination = prepareSampleCaseTransfer(window.sessionStorage, decisions, window.crypto.randomUUID());
@@ -221,7 +225,7 @@ export default function Board({ property, findings, banner, reply, pdf, remember
           {DECISIONS.map((decision) => <span key={decision}>{DECISION_LABELS[decision]}: <b>{decisionCounts[decision]}</b></span>)}
         </div>
         <button className="chip" disabled={sampleStorage === "loading" || (!Object.keys(decisions).length && !resetStorageFailed)} onClick={resetResponses}>Reset suggested responses</button>
-        {rememberSampleResponses && <section className="sample-case-handoff" aria-label="Carry sample choices into a case">
+        {rememberSampleResponses && <section className="sample-case-handoff review-target" ref={handoffRef} tabIndex={-1} aria-label="Carry sample choices into a case">
           <h3>Turn your review into an evidence bundle</h3>
           <p>Continue with three fictional claims: bedroom carpet, kitchen oven and bathroom bath. Only responses you changed or explicitly confirmed for these three items carry over. Other findings stay on this board; untouched suggestions are not treated as your choices.</p>
           <p className="meta">Dispute becomes Question this deduction. Discuss after evidence stays Discuss after evidence. Not claimed becomes Leave out of response. Untouched claims start as Question this deduction. No charge is accepted. This starts a fresh sample case, not a private case. A one-time handoff saves only sample references and choices in this tab until the case opens; no photos or notes are copied.</p>
@@ -281,6 +285,10 @@ export default function Board({ property, findings, banner, reply, pdf, remember
                     ? `Explicit response: ${DECISION_LABELS[selected]} (${selected === suggested ? "confirmed suggestion" : "changed response"}).${rememberSampleResponses && transferableIds.has(f.id) ? " Ready to carry over." : ""}`
                     : "Suggested only, not your decision. Confirm or change this response to use it in your draft."}</p>
                 </div>
+                {rememberSampleResponses && transferableIds.has(f.id) && <div className="card-case-handoff">
+                  <p className="meta" id={`${inputId}-handoff`}>Continue with the fictional carpet, oven and bath claims. All explicitly selected responses for those three carry over; untouched claims start as Question this deduction. No charge is accepted.{!Object.hasOwn(decisions, f.id) && " Confirm or change this response first."}</p>
+                  <button type="button" className="chip" aria-describedby={`${inputId}-handoff`} disabled={sampleStorage === "loading" || transferring || !Object.hasOwn(decisions, f.id)} onClick={continueToCase}>Continue with current choices</button>
+                </div>}
                 <div className="meta" id={`${inputId}-reason`}>{selected !== suggested ? `You changed the suggested response (${DECISION_LABELS[suggested]}). ` : ""}{defaultDecisionReason(f)}</div>
               </div>
             </article>
