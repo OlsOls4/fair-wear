@@ -39,8 +39,13 @@ eq("fractional years allowed", apportion("damage", "wall", 0.5, 0.5, wallBasis),
 eq("validator accepts good", validateJudge({ verdict: "damage", confidence: 0.8, description: "Gouge.", moved: false, evidence: "x" }).ok, true);
 eq("validator rejects bad verdict", validateJudge({ verdict: "broken", confidence: 0.8, description: "x" }).ok, false);
 eq("validator rejects empty description", validateJudge({ verdict: "damage", confidence: 0.8, description: " " }).ok, false);
-const pct = validateJudge({ verdict: "damage", confidence: 85, description: "x" });
-eq("validator normalises 85 -> 0.85", pct.ok && pct.value.confidence, 0.85);
+for (const confidence of [85, 101, 1000, -1, 1.01, NaN, Infinity, -Infinity, "0.99", "99garbage", null, undefined]) {
+  eq(`validator rejects malformed confidence ${String(confidence)}`, validateJudge({ verdict: "damage", confidence, description: "x" }).ok, false);
+}
+for (const confidence of [0, 0.89999, 0.9, 1]) {
+  const valid = validateJudge({ verdict: "damage", confidence, description: "x", moved: false, evidence: "x" });
+  eq(`validator preserves valid confidence ${confidence}`, valid.ok && valid.value.confidence, confidence);
+}
 eq("validator rejects null", validateJudge(null).ok, false);
 
 const cases = JSON.parse(readFileSync("eval/judge/cases.json", "utf8"));

@@ -1,7 +1,8 @@
 import type { CalculationBasis, EvidencePack, Finding, Item, MatchedPair, Verdict } from "./types";
 import { MOCK, museImageCard, museSparkJSON, museSparkText, sam31Track } from "./models";
 import { apportion, calculateShare, guidanceFor } from "./guidance";
-import { JUDGE_SCHEMA, validateJudge, type JudgeOut } from "./schema";
+import { JUDGE_SCHEMA } from "./schema";
+import { JudgeValidationError, requestValidatedJudgement } from "./judgement";
 import { JUDGE_SYSTEM, REPLY_SYSTEM } from "./prompts";
 
 // Stage 1: frames come from client-side sampling (1 fps) or ffmpeg on upload.
@@ -33,23 +34,24 @@ export async function extractItems(videoUrl: string, visit: Item["visit"], room:
 export { matchItems, changeStatus, normLabel } from "./matching";
 
 // Stage 4: judge each pair. Muse Spark classifies (schema-validated, one retry); guidance.ts apportions deterministically.
+export { JudgeValidationError } from "./judgement";
+
 export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveInYears?: number, basis?: CalculationBasis): Promise<Finding> {
   const g = guidanceFor(pair.label);
   const urls = [pair.before?.bestFrame.url, pair.after?.bestFrame.url].filter(Boolean) as string[];
   const user = JSON.stringify({ item: pair.label, room: pair.room, tenancyYears, guidance: g.note, before: pair.before ? "BEFORE image attached first" : "no BEFORE crop", after: pair.after ? "AFTER image attached" : "no AFTER crop" });
-  let out: JudgeOut | undefined;
-  let lastErr = "";
-  for (let attempt = 0; attempt < 2 && !out; attempt++) {
-    const raw = await museSparkJSON<unknown>(JUDGE_SYSTEM, attempt ? `${user}\nYour previous reply was invalid (${lastErr}). Return only the JSON object.` : user, urls, JUDGE_SCHEMA as unknown as Record<string, unknown>);
-    const v = validateJudge(raw);
-    if (v.ok) out = v.value; else lastErr = v.error;
-    if (MOCK) break;
-  }
+  const out = MOCK ? undefined : await requestValidatedJudgement((previousError) =>
+    museSparkJSON<unknown>(JUDGE_SYSTEM, previousError ? `${user}\nYour previous reply was invalid (${previousError}). Return only the JSON object.` : user, urls, JUDGE_SCHEMA as unknown as Record<string, unknown>));
   // Items missing from one side are decided structurally; the model only confirms.
   const structural: Verdict | undefined = !pair.after ? "missing" : !pair.before ? "added" : undefined;
-  const verdict = out ? (structural && out.verdict !== structural && out.confidence < 0.7 ? structural : out.verdict) : structural ?? "no_change";
+  // Only the explicit MOCK fixtures may use a structural placeholder. A failed
+  // real judgement must never become no_change, missing, or added evidence.
+  if (!out && !(MOCK && structural)) {
+    throw new JudgeValidationError("No model judgement is available in MOCK mode.");
+  }
+  const verdict = out ? (structural && out.verdict !== structural && out.confidence < 0.7 ? structural : out.verdict) : structural!;
   return {
-    pair, verdict, confidence: out?.confidence ?? 0, description: out?.description ?? (MOCK ? "Mock mode: no model judgement." : `Judge failed validation: ${lastErr}`),
+    pair, verdict, confidence: out?.confidence ?? 0, description: out?.description ?? "Mock mode: no model judgement.",
     simulated: MOCK, usefulLifeYears: basis?.usefulLifeYears, ageYears: ageAtMoveInYears, tenancyYears,
     calculationBasis: basis, shareCalculation: calculateShare(verdict, tenancyYears, ageAtMoveInYears, basis),
     apportionmentPct: apportion(verdict, pair.label, tenancyYears, ageAtMoveInYears, basis), guidanceRefs: g.refs,
