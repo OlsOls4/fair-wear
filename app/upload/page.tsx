@@ -42,6 +42,7 @@ export default function Upload() {
             <h2>Sample findings</h2>
             <DemoEvaluation />
             <Board
+              rememberSampleResponses
               property={demoData.property}
               findings={demoFindings}
               pdf="/demo/fair-wear-evidence-pack.pdf"

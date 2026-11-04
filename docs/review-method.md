@@ -18,7 +18,9 @@ Fair Wear is an evidence-review prototype. It separates three questions that a m
 
 These are suggestions, not user consent or findings of liability. The model's confidence is uncalibrated; 90% is a review-rule threshold, not evidence of 90% accuracy. The display avoids rounding an under-threshold value up to 90%.
 
-The reviewer can change any response. Filters do not remove decisions from the current draft. Not claimed omits an item. Selections are held only in the current page and reset on reload.
+The reviewer can change any response. Filters do not remove decisions from the current draft. Not claimed omits an item. The public sample board on `/demo` and `/upload` shares response choices in browser session storage, so navigation and reload in the same tab preserve them. Reset suggested responses removes those saved choices. Browser session restore can preserve session storage after a tab is closed; this is not a promise of deletion on close. No cross-device or cross-tab synchronisation is provided.
+
+Only allowlisted public sample finding references and valid response choices are saved, with a schema version and sample-compatibility fingerprint. Photos, personal case fields and notes never enter this store. Changed sample data, malformed records, unknown references and invalid choices are ignored. Generic boards and the private Case builder do not opt into sample persistence. If storage is blocked or a write fails, review still works in memory and the UI explains that choices may be lost on navigation or reload. A failed reset explicitly warns that old saved choices could reappear and offers a retry.
 
 ## Replacement-life illustration
 

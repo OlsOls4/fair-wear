@@ -4,6 +4,7 @@ import { DECISIONS, defaultDecision, defaultDecisionReason, type Decision } from
 import { replyDraft } from "@/lib/reply";
 import { confidenceLabel, type F } from "@/lib/findings";
 import { calculateShare } from "@/lib/pipeline/guidance";
+import { readSampleResponses, saveSampleResponses } from "@/lib/sample-review-session";
 import EvidencePair from "./EvidencePair";
 
 export type { F } from "@/lib/findings";
@@ -11,17 +12,38 @@ export { replyDraft } from "@/lib/reply";
 const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear & tear", cleaning: "Cleaning", no_change: "No change", missing: "Missing", added: "Added", unresolved: "Unresolved" };
 const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved", "no_change"];
 
-export default function Board({ property, findings, banner, reply, pdf }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string }) {
+export default function Board({ property, findings, banner, reply, pdf, rememberSampleResponses = false }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string; rememberSampleResponses?: boolean }) {
   const boardId = useId();
   const [filter, setFilter] = useState("all");
   const [showReply, setShowReply] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+  const [sampleStorage, setSampleStorage] = useState<"loading" | "ready" | "unavailable">(rememberSampleResponses ? "loading" : "unavailable");
+  const [resetStorageFailed, setResetStorageFailed] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
   const [navigationTarget, setNavigationTarget] = useState<{ findingId?: string } | null>(null);
   const findingRefs = useRef(new Map<string, HTMLElement>());
   const draftHeadingRef = useRef<HTMLHeadingElement>(null);
   const draftOpenerRef = useRef<HTMLButtonElement | null>(null);
   const draftId = `${boardId}-current-reply`;
+  useEffect(() => {
+    if (!rememberSampleResponses) return;
+    function restoreResponses() {
+      try {
+        setDecisions(readSampleResponses(window.sessionStorage));
+        setSampleStorage("ready");
+        setResetStorageFailed(false);
+        setCopyStatus("");
+      } catch {
+        setSampleStorage("unavailable");
+      }
+    }
+    restoreResponses();
+    // A Back/Forward-cache restore does not remount React. Another sample page
+    // may have changed or reset this tab's choices while this document slept.
+    function onPageShow(event: PageTransitionEvent) { if (event.persisted) restoreResponses(); }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [rememberSampleResponses]);
   const reviewStops = [
     { id: "living-room-carpet-0-1", label: "Inspect a change" },
     { id: "bedroom-carpet-0-0", label: "Inspect a model error" },
@@ -59,8 +81,21 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
   const shown = findings.filter((f) => filter === "all" || f.verdict === filter).sort((a, b) => ORDER.indexOf(a.verdict) - ORDER.indexOf(b.verdict));
   const draft = useMemo(() => replyDraft(property, findings, decisions), [property, findings, decisions]);
   function choose(id: string, decision: Decision) {
-    setDecisions((current) => ({ ...current, [id]: decision }));
+    const next = { ...decisions, [id]: decision };
+    setDecisions(next);
+    if (rememberSampleResponses) {
+      try { saveSampleResponses(window.sessionStorage, next); setSampleStorage("ready"); setResetStorageFailed(false); }
+      catch { setSampleStorage("unavailable"); }
+    }
     setCopyStatus("");
+  }
+  function resetResponses() {
+    setDecisions({});
+    setCopyStatus("");
+    if (rememberSampleResponses) {
+      try { saveSampleResponses(window.sessionStorage, {}); setSampleStorage("ready"); setResetStorageFailed(false); }
+      catch { setSampleStorage("unavailable"); setResetStorageFailed(true); }
+    }
   }
   async function copyDraft() {
     try { await navigator.clipboard.writeText(draft); setCopyStatus("Draft copied. Review and edit it before sharing."); }
@@ -87,11 +122,21 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
           </div>
         </div>
         <p>The model verdict is evidence to review, not a finding of liability. Change each suggested response below. Agree means provisional agreement, subject to evidence and cost review. Not claimed leaves the item out of your draft.</p>
-        <p className="meta">Nothing is sent. Your selections stay on this page and reset on reload. The draft updates from all your choices, including items hidden by a filter.</p>
+        <p className="meta">Nothing is sent. The draft updates from all your choices, including items hidden by a filter.</p>
+        <p className="meta" data-testid="review-storage-notice" aria-live="polite">
+          {rememberSampleResponses ? sampleStorage === "loading"
+            ? "Checking this tab for saved sample responses."
+            : sampleStorage === "ready"
+              ? "Sample responses stay in this browser tab across navigation and reload. Reset suggested responses clears them. Only sample finding references and choices are saved, never photos or personal case details. Browser session restore may keep them after closing a tab."
+              : resetStorageFailed
+                ? "Responses reset on this page, but saved choices could not be cleared. They may reappear when you return. Download the current draft before leaving."
+                : "Tab storage is unavailable. Your latest choices are kept only on this page and may be lost when you leave or reload. Download the current draft before leaving."
+            : "Your selections are kept only on this page. Download your current draft before leaving or reloading."}
+        </p>
         <div className="row" aria-live="polite" data-testid="decision-summary">
           {DECISIONS.map((decision) => <span key={decision}>{decision}: <b>{decisionCounts[decision]}</b></span>)}
         </div>
-        <button className="chip" disabled={!Object.keys(decisions).length} onClick={() => { setDecisions({}); setCopyStatus(""); }}>Reset suggested responses</button>
+        <button className="chip" disabled={sampleStorage === "loading" || (!Object.keys(decisions).length && !resetStorageFailed)} onClick={resetResponses}>Reset suggested responses</button>
       </section>
       <div className="row" role="group" aria-label="Filter model verdicts">
         <button className={`chip ${filter === "all" ? "on" : ""}`} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All ({findings.length})</button>
@@ -126,7 +171,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
               <div className="meta">Model-reported confidence {confidenceLabel(f.confidence)}. This score is uncalibrated, not a probability of correctness or responsibility.</div>
               <div className="decision-control">
                 <label id={`${inputId}-label`} htmlFor={`${inputId}-response`}>Your response</label>
-                <select id={`${inputId}-response`} aria-labelledby={`${inputId}-label ${inputId}-room ${inputId}-item`} aria-describedby={`${inputId}-reason ${inputId}-reference`} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
+                <select id={`${inputId}-response`} aria-labelledby={`${inputId}-label ${inputId}-room ${inputId}-item`} aria-describedby={`${inputId}-reason ${inputId}-reference`} disabled={rememberSampleResponses && sampleStorage === "loading"} value={selected} onChange={(e) => choose(f.id, e.target.value as Decision)}>
                   {DECISIONS.map((decision) => <option key={decision}>{decision}</option>)}
                 </select>
                 <div className="meta" id={`${inputId}-reason`}>{selected !== suggested ? `You changed the suggested response (${suggested}). ` : ""}{defaultDecisionReason(f)}</div>
