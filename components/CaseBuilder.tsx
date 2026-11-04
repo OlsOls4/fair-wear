@@ -23,6 +23,15 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
   const [transferredCount, setTransferredCount] = useState<number | null>(null);
   const transferChecked = useRef(false);
   const nextId = useRef(1);
+  const editorRef = useRef<HTMLElement>(null);
+  const editorHeadingRef = useRef<HTMLHeadingElement>(null);
+  const [editorNavigation, setEditorNavigation] = useState(0);
+  // Only explicit list navigation moves focus, never initial load or field edits.
+  useEffect(() => {
+    if (!editorNavigation || !window.matchMedia?.("(max-width: 740px)").matches) return;
+    editorHeadingRef.current?.focus({ preventScroll: true });
+    editorRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+  }, [editorNavigation]);
   const selected = items.find((item) => item.id === selectedId) ?? items[0];
   const document: CaseDocument = useMemo(() => ({ mode, title, items, photoContext }), [mode, title, items, photoContext]);
   const totals = caseTotals(items), illustration = replacementIllustration(selected);
@@ -68,10 +77,14 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
     if (dirty && !window.confirm("Reset this sample case? Its responses, notes and edited amounts will be cleared. Your saved choices on the sample review will not change.")) return;
     setItems(sampleItems); setSelectedId(sampleItems[0].id); setTitle("Demo flat: proposed deposit deductions"); setDirty(false); setShowReply(false); setTransferredCount(null); setHandoffError(""); setStatus("Sample case reset. Your saved review-board choices are unchanged.");
   }
+  function selectItem(id: string) {
+    setSelectedId(id); setStatus("");
+    setEditorNavigation((request) => request + 1);
+  }
   function addItem() {
     if (items.length >= 12) return;
     const next = emptyCaseItem(`claim-${nextId.current++}`);
-    setItems((items) => [...items, next]); setSelectedId(next.id); setDirty(true); setStatus("");
+    setItems((items) => [...items, next]); selectItem(next.id); setDirty(true);
   }
   async function choosePhoto(event: React.ChangeEvent<HTMLInputElement>, visit: "before" | "after") {
     const file = event.target.files?.[0], id = selected.id; event.target.value = "";
@@ -102,13 +115,13 @@ export default function CaseBuilder({ sampleItems }: { sampleItems: CaseItem[] }
     {mode === "sample" && transferredCount !== null && <section className={styles.modeBar} aria-label="Sample review handoff" data-testid="sample-review-handoff"><div><b>{transferredCount ? `${transferredCount} selected sample response${transferredCount === 1 ? "" : "s"} carried over.` : "No selected responses matched these three claims."}</b><p>Only bedroom carpet, kitchen oven and bathroom bath are included. Dispute → Question this deduction; Discuss after evidence → Discuss after evidence; Not claimed → Leave out of response. Untouched items start as Question this deduction. These are your starting responses, separate from the original model suggestions. Later edits stay only on this page and do not update the review board.</p><p>Export before leaving or reloading. This one-time handoff does not save the case, photos or notes.</p></div><button className={styles.secondary} disabled={busy} onClick={resetTransferredCase}>Reset example case</button></section>}
     <div className={styles.workspace}>
       <aside className={styles.sidebar} aria-label="Your deduction list"><div className={styles.sectionLabel}><span>01 / DEDUCTIONS</span><b>{items.length}</b></div><div className={styles.claims}>
-        {items.map((item, index) => <button key={item.id} disabled={busy} className={`${styles.claim} ${selected.id === item.id ? styles.claimSelected : ""}`} aria-pressed={selected.id === item.id} onClick={() => { setSelectedId(item.id); setStatus(""); }}><span className={styles.claimNumber}>{String(index + 1).padStart(2, "0")}</span><span><b>{item.item || "New deduction"}</b><small>{item.room || "Add a room"}</small><span className={styles.claimState}>{RESPONSE_LABELS[item.response]}</span></span><strong>{moneyPence(item.claimPounds) === null ? "£—" : pounds(moneyPence(item.claimPounds)!)}</strong></button>)}
+        {items.map((item, index) => <button key={item.id} disabled={busy} className={`${styles.claim} ${selected.id === item.id ? styles.claimSelected : ""}`} aria-pressed={selected.id === item.id} onClick={() => selectItem(item.id)}><span className={styles.claimNumber}>{String(index + 1).padStart(2, "0")}</span><span><b>{item.item || "New deduction"}</b><small>{item.room || "Add a room"}</small><span className={styles.claimState}>{RESPONSE_LABELS[item.response]}</span></span><strong>{moneyPence(item.claimPounds) === null ? "£—" : pounds(moneyPence(item.claimPounds)!)}</strong></button>)}
       </div>{mode === "personal" && <button className={styles.addButton} disabled={busy || items.length >= 12} onClick={addItem}>+ Add a deduction {items.length >= 12 ? "(12-item limit)" : ""}</button>}
       <div className={styles.summary} data-testid="case-summary"><span className={styles.sectionLabel}>YOUR RESPONSE TOTALS</span><p><span>Questioned</span><strong>{pounds(totals.question)}</strong></p><p><span>For discussion</span><strong>{pounds(totals.discuss)}</strong></p><small>{totals.unknown ? `${totals.unknown} included amount(s) unknown or invalid. ` : ""}{totals.omitted ? `${totals.omitted} item(s) left out. ` : ""}Sums of proposed deductions, not savings, accepted charges or liability.</small></div>
       </aside>
-      <section className={styles.editor} aria-label="Review selected deduction">
+      <section ref={editorRef} className={styles.editor} aria-label="Review selected deduction">
         <div className={styles.sectionLabel}><span>02 / EVIDENCE & RESPONSE</span><span>{mode === "sample" ? "GENERATED SAMPLE IMAGERY" : "MANUAL REVIEW"}</span></div>
-        <div className={styles.itemHeading}><h2>{selected.item || "Add a proposed deduction"}</h2><span>{selected.room.replaceAll("-", " ")}</span></div>
+        <div className={styles.itemHeading}><h2 ref={editorHeadingRef} tabIndex={-1}>{selected.item || "Add a proposed deduction"}</h2><span>{selected.room.replaceAll("-", " ")}</span></div>
         <fieldset disabled={busy} className={styles.fields}><legend className={styles.srOnly}>Claim details</legend>
           <div className={styles.fieldRow}><label>Room<input aria-label="Room" value={selected.room} maxLength={100} onChange={(e) => patch(selected.id, { room: e.target.value })} placeholder="e.g. Bedroom" /></label><label>Item<input aria-label="Item" value={selected.item} maxLength={100} onChange={(e) => patch(selected.id, { item: e.target.value })} placeholder="e.g. Carpet" /></label><label>Proposed amount (£)<input aria-label="Proposed amount in pounds" inputMode="decimal" value={selected.claimPounds} aria-invalid={amountInvalid} aria-describedby={amountInvalid ? "amount-error" : undefined} maxLength={15} onChange={(e) => patch(selected.id, { claimPounds: e.target.value })} placeholder="Unknown" /></label></div>
           {amountInvalid && <p id="amount-error" className={styles.error}>Enter a non-negative amount with at most two decimal places, up to £1,000,000. This amount is excluded from totals until valid.</p>}

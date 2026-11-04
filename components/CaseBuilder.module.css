@@ -15,3 +15,6 @@
 .importedResponse{padding:12px 14px;border-left:3px solid #739278;background:#edf4e7;font-size:12px;line-height:1.6}
 
 .evidenceTracker{border:1px solid var(--border);border-radius:10px;padding:16px;margin:20px 0;background:#f7f9f3}.trackerToggle{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;min-height:44px;flex-wrap:wrap}.trackerToggle input{accent-color:var(--green);width:18px;height:18px}.trackerToggle span{font-size:10px;font-weight:400}.evidenceTracker p,.evidenceRequests li{font-size:12px;line-height:1.6;overflow-wrap:anywhere}.evidenceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}.evidenceRequests{border-top:1px solid var(--border);padding-top:14px;font-size:12px}.evidenceRequests ul{padding-left:20px;margin-bottom:0}.evidenceRequests li+li{margin-top:8px}.evidenceTracker select:focus-visible,.trackerToggle input:focus-visible{outline:3px solid #497343;outline-offset:3px}@media(max-width:740px){.evidenceGrid{grid-template-columns:1fr}.evidenceTracker{padding:12px}}
+
+/* Leave room around the editor when explicit mobile navigation reveals it. */
+.editor{scroll-margin-top:16px}.itemHeading h2:focus-visible{outline:3px solid #497343;outline-offset:4px}
