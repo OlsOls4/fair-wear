@@ -15,7 +15,7 @@ interface ReplyFinding {
 }
 
 export function prepareReplyFindings(findings: ReplyFinding[]) {
-  const order = ["damage", "missing", "cleaning", "fair_wear", "added"];
+  const order = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved"];
   return findings.filter((f) => f.verdict !== "no_change")
     .sort((a, b) => order.indexOf(a.verdict) - order.indexOf(b.verdict))
     .map((f, i) => ({

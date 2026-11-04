@@ -2,14 +2,14 @@
 import { normLabel } from "../pipeline/matching";
 
 export interface Observation {
-  id: string; room: string; item: string; verdict: string; confidence: number;
+  id: string; room: string; item: string; verdict: string; confidence: number | null;
   description: string; before?: string; after?: string;
 }
 export interface PlantedRoom {
   room: string; moveIn: string; moveOut: string;
   planted: { item: string; verdict: string }[];
 }
-export type Outcome = "exact" | "wrong_verdict" | "no_change" | "no_record" | "withheld" | "false_alarm" | "unchanged";
+export type Outcome = "exact" | "wrong_verdict" | "no_change" | "no_record" | "withheld" | "false_alarm" | "unchanged" | "unresolved";
 export interface EvidenceCase {
   id: string; room: string; item: string; expected: string | null;
   moveIn: string; moveOut: string; observations: Observation[];
@@ -46,10 +46,10 @@ export function buildEvidenceCases(observations: Observation[], rooms: PlantedRo
 export function analyzeEvidence(cases: EvidenceCase[], threshold = 0) {
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) throw new Error("Threshold must be between 0 and 1.");
   const rows: CaseResult[] = cases.map((item) => {
-    const retained = item.observations.filter((o) => Number.isFinite(o.confidence) && o.confidence >= threshold && o.confidence >= 0 && o.confidence <= 1);
-    const flagged = retained.filter((o) => o.verdict !== "no_change");
+    const retained = item.observations.filter((o) => o.confidence !== null && Number.isFinite(o.confidence) && o.confidence >= threshold && o.confidence >= 0 && o.confidence <= 1);
+    const flagged = retained.filter((o) => o.verdict !== "no_change" && o.verdict !== "unresolved");
     const exact = item.expected !== null && retained.some((o) => o.verdict === item.expected);
-    const outcome: Outcome = !item.observations.length ? "no_record" : !retained.length ? "withheld" : item.expected === null ? (flagged.length ? "false_alarm" : "unchanged") : exact ? "exact" : flagged.length ? "wrong_verdict" : "no_change";
+    const outcome: Outcome = !item.observations.length ? "no_record" : !flagged.length && item.observations.some((o) => o.verdict === "unresolved") ? "unresolved" : !retained.length ? "withheld" : item.expected === null ? (flagged.length ? "false_alarm" : "unchanged") : exact ? "exact" : flagged.length ? "wrong_verdict" : "no_change";
     return { ...item, retained, flagged, exact, outcome, distinctVerdicts: [...new Set(retained.map((o) => o.verdict))] };
   });
   const planted = rows.filter((r) => r.expected !== null);
@@ -74,11 +74,12 @@ export function analyzeEvidence(cases: EvidenceCase[], threshold = 0) {
 
 export const outcomeLabels: Record<Outcome, string> = {
   exact: "Expected label found", wrong_verdict: "Wrong change label", no_change: "Change missed", no_record: "No saved observation",
-  withheld: "All observations withheld", false_alarm: "Unplanted change flag", unchanged: "No change flagged",
+  unresolved: "Insufficient comparison evidence", withheld: "All observations withheld", false_alarm: "Unplanted change flag", unchanged: "No change flagged",
 };
 
 export function explainCase(row: CaseResult): string {
   switch (row.outcome) {
+    case "unresolved": return "At least one observation could not establish a comparison, and no change flag survives this threshold. Unresolved is not evidence of a missing, added or unchanged item; comparable records and human review are needed.";
     case "no_record": return "No matched crop pair or judge result was saved for this item. The published evaluation calls it ‘not segmented’. Without raw segmentation responses, the exact failure stage cannot be independently reconstructed.";
     case "withheld": return "The saved observations are below this threshold or have invalid confidence. Withheld is not the same as no change; a person still needs to inspect the evidence.";
     case "no_change": return `The test design planted ${pretty(row.expected!)}. Retained observations say no change, so this test change was missed.`;

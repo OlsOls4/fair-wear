@@ -8,7 +8,9 @@ export function replyDraft(property: string, findings: F[], decisions: Record<st
     const decision = decisions[f.id] ?? defaultDecision(f);
     const heading = `${i + 1}. ${f.room} ${f.item} [${f.id}]`;
     if (decision === "Dispute") {
-      const reason = f.verdict === "fair_wear"
+      const reason = f.verdict === "unresolved"
+        ? "The available observations do not establish a change. Please provide comparable dated move-in and move-out evidence; an absent observation does not prove an item is missing or added."
+        : f.verdict === "fair_wear"
         ? "The comparison suggests ordinary wear; please explain why a deduction is proposed."
         : f.verdict === "cleaning" && /\bmou?ld\b/i.test(f.description)
           ? "Please provide evidence of the cause of the reported mould and who is responsible."

@@ -1,8 +1,8 @@
-import type { CalculationBasis, EvidencePack, Finding, Item, MatchedPair, Verdict } from "./types";
+import type { CalculationBasis, EvidencePack, Finding, Item, MatchedPair } from "./types";
 import { MOCK, museImageCard, museSparkJSON, museSparkText, sam31Track } from "./models";
-import { apportion, calculateShare, guidanceFor } from "./guidance";
+import { calculateShare, guidanceFor } from "./guidance";
 import { JUDGE_SCHEMA } from "./schema";
-import { JudgeValidationError, requestValidatedJudgement } from "./judgement";
+import { judgePair } from "./judgement";
 import { JUDGE_SYSTEM, REPLY_SYSTEM } from "./prompts";
 
 // Stage 1: frames come from client-side sampling (1 fps) or ffmpeg on upload.
@@ -38,29 +38,15 @@ export { JudgeValidationError } from "./judgement";
 
 export async function judge(pair: MatchedPair, tenancyYears: number, ageAtMoveInYears?: number, basis?: CalculationBasis): Promise<Finding> {
   const g = guidanceFor(pair.label);
-  const urls = [pair.before?.bestFrame.url, pair.after?.bestFrame.url].filter(Boolean) as string[];
+  const urls = [pair.before?.bestFrame?.url, pair.after?.bestFrame?.url].filter(Boolean) as string[];
   const user = JSON.stringify({ item: pair.label, room: pair.room, tenancyYears, guidance: g.note, before: pair.before ? "BEFORE image attached first" : "no BEFORE crop", after: pair.after ? "AFTER image attached" : "no AFTER crop" });
-  const out = MOCK ? undefined : await requestValidatedJudgement((previousError) =>
+  return judgePair(pair, { tenancyYears, ageAtMoveInYears, basis, simulated: MOCK }, MOCK ? undefined : (previousError) =>
     museSparkJSON<unknown>(JUDGE_SYSTEM, previousError ? `${user}\nYour previous reply was invalid (${previousError}). Return only the JSON object.` : user, urls, JUDGE_SCHEMA as unknown as Record<string, unknown>));
-  // Items missing from one side are decided structurally; the model only confirms.
-  const structural: Verdict | undefined = !pair.after ? "missing" : !pair.before ? "added" : undefined;
-  // Only the explicit MOCK fixtures may use a structural placeholder. A failed
-  // real judgement must never become no_change, missing, or added evidence.
-  if (!out && !(MOCK && structural)) {
-    throw new JudgeValidationError("No model judgement is available in MOCK mode.");
-  }
-  const verdict = out ? (structural && out.verdict !== structural && out.confidence < 0.7 ? structural : out.verdict) : structural!;
-  return {
-    pair, verdict, confidence: out?.confidence ?? 0, description: out?.description ?? "Mock mode: no model judgement.",
-    simulated: MOCK, usefulLifeYears: basis?.usefulLifeYears, ageYears: ageAtMoveInYears, tenancyYears,
-    calculationBasis: basis, shareCalculation: calculateShare(verdict, tenancyYears, ageAtMoveInYears, basis),
-    apportionmentPct: apportion(verdict, pair.label, tenancyYears, ageAtMoveInYears, basis), guidanceRefs: g.refs,
-  };
 }
 
 // Stage 5: cards + pack.
 export async function buildPack(property: string, findings: Finding[]): Promise<EvidencePack> {
-  for (const f of findings.filter((x) => x.verdict !== "no_change")) {
+  for (const f of findings.filter((x) => x.verdict !== "no_change" && x.verdict !== "unresolved")) {
     f.cardUrl = await museImageCard(`Clean evidence card graphic titled "${f.pair.room}: ${f.pair.label}" with verdict "${f.verdict.replace("_", " ")}" and the note "${f.description.slice(0, 120)}". Minimal, legible, neutral colours.`);
   }
   const replyDraft = await museSparkText(`${REPLY_SYSTEM} Do not infer acceptance or liability from a classification or percentage. Any remaining-life maths is illustrative only. Missing inputs require evidence, not a guessed number.`, JSON.stringify(findings.map((f) => ({

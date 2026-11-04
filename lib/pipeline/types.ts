@@ -1,5 +1,5 @@
 export type Visit = "move_in" | "move_out";
-export type Verdict = "no_change" | "fair_wear" | "damage" | "cleaning" | "missing" | "added";
+export type Verdict = "no_change" | "fair_wear" | "damage" | "cleaning" | "missing" | "added" | "unresolved";
 
 export interface Frame { visit: Visit; room: string; t: number; url: string }
 export interface Item {
@@ -20,7 +20,8 @@ export interface ShareCalculation {
   note: string;
 }
 export interface Finding {
-  pair: MatchedPair; verdict: Verdict; confidence: number;
+  pair: MatchedPair; verdict: Verdict; confidence: number | null; // null when no model judgement was made
+  judgementSource?: "model" | "evidence_gap"; // absent on preserved legacy findings
   description: string;                 // what changed, in plain English
   usefulLifeYears?: number; ageYears?: number; tenancyYears?: number;
   apportionmentPct?: number;           // legacy field: illustrative remaining-life share, never liability

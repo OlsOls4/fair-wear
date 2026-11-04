@@ -8,8 +8,8 @@ import EvidencePair from "./EvidencePair";
 
 export type { F } from "@/lib/findings";
 export { replyDraft } from "@/lib/reply";
-const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear & tear", cleaning: "Cleaning", no_change: "No change", missing: "Missing", added: "Added" };
-const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "no_change"];
+const LABEL: Record<string, string> = { damage: "Damage", fair_wear: "Fair wear & tear", cleaning: "Cleaning", no_change: "No change", missing: "Missing", added: "Added", unresolved: "Unresolved" };
+const ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved", "no_change"];
 
 export default function Board({ property, findings, banner, reply, pdf }: { property: string; findings: F[]; banner?: string; reply?: string; pdf?: string }) {
   const boardId = useId();
@@ -108,7 +108,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
             ? calculateShare(f.verdict, f.tenancyYears, f.ageYears, f.calculationBasis) : null;
           return (
             <article className="card review-target" key={f.id} data-finding-id={f.id} tabIndex={-1} aria-labelledby={`${inputId}-item ${inputId}-room`} ref={(element) => { if (element) findingRefs.current.set(f.id, element); else findingRefs.current.delete(f.id); }}>
-              <span className={`badge v-${f.verdict}`}>Model: {LABEL[f.verdict] ?? f.verdict}</span>
+              <span className={`badge v-${f.verdict}`}>{f.verdict === "unresolved" ? "Review" : "Model"}: {LABEL[f.verdict] ?? f.verdict}</span>
               <h3 id={`${inputId}-item`} style={{ marginTop: 8 }}>{f.item}</h3>
               <div className="room" id={`${inputId}-room`}>{f.room}{f.simulated ? " · simulated imagery" : ""}</div>
               <div className="meta" id={`${inputId}-reference`}>Finding reference: {f.id}</div>
@@ -120,6 +120,7 @@ export default function Board({ property, findings, banner, reply, pdf }: { prop
                 {calculation.note}
               </div>}
               {f.verdict === "cleaning" && <div className="meta">The prototype does not depreciate cleaning costs by item lifespan. Responsibility and any reasonable cleaning charge still need supporting evidence.</div>}
+              {f.verdict === "unresolved" && <div className="meta">Insufficient evidence is not proof of a missing, added, damaged or unchanged item. Request comparable records and human review before drawing a conclusion.</div>}
               {f.verdict === "fair_wear" && <div className="meta">The model suggests ordinary wear over {f.tenancyYears} years. Review the evidence before responding.</div>}
               {f.guidanceNote && <div className="meta">Background example, not item-specific evidence: {f.guidanceNote}</div>}
               <div className="meta">Model-reported confidence {confidenceLabel(f.confidence)}. This score is uncalibrated, not a probability of correctness or responsibility.</div>

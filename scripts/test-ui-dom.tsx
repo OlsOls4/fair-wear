@@ -323,6 +323,28 @@ async function main() {
     assert.doesNotMatch(text, /999%/);
     assert.match(text, /not verified facts or tenant liability/);
   });
+  const unresolved = { ...supplied, id: "unresolved-observation", verdict: "unresolved", confidence: null, description: "No matched move-out observation was supplied.", after: undefined };
+  await act(async () => root.render(<Board key="unresolved" property="Incomplete comparison" findings={[unresolved]} />));
+  ok("unresolved evidence has a visible review state, unknown confidence and no replacement calculation", () => {
+    assert.match(card(unresolved.id).textContent!, /Review: Unresolved/);
+    assert.match(card(unresolved.id).textContent!, /Insufficient evidence is not proof/);
+    assert.match(card(unresolved.id).textContent!, /confidence unavailable/);
+    assert.equal(card(unresolved.id).querySelector("select")!.value, "Dispute");
+    assert.equal(host.querySelector('[data-testid="replacement-calculation"]'), null);
+    assert.doesNotMatch(card(unresolved.id).textContent!, /999%/);
+  });
+  await click("Unresolved (1)");
+  await click("Open current draft");
+  ok("unresolved filter and draft preserve an evidence request rather than a missing-item claim", () => {
+    assert.equal(host.querySelectorAll("article").length, 1);
+    assert.match(draft(), /observations do not establish a change/);
+    assert.doesNotMatch(draft(), /Agree in principle/);
+  });
+  await choose(unresolved.id, "Not claimed");
+  ok("a reviewer can omit unresolved evidence without changing the observation", () => {
+    assert.doesNotMatch(draft(), /\[unresolved-observation\]/);
+    assert.match(card(unresolved.id).textContent!, /No matched move-out observation was supplied/);
+  });
   for (const stage of ["before", "after"] as const) {
     await act(async () => root.render(<EvidencePair key={stage} {...{ [stage]: "/single.jpg" }} label="Single crop" />));
     await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!.click());

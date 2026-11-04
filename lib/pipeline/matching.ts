@@ -63,12 +63,11 @@ export function matchItems(before: Item[], after: Item[], minScore = 0.5): Match
   return pairs;
 }
 
-export type ChangeStatus = "added" | "removed" | "moved" | "unchanged";
-/** Object-level change call from matched pairs (used for the SceneDiff benchmark). */
+export type ChangeStatus = "added" | "removed" | "moved" | "unchanged" | "unresolved";
+/** Matching alone cannot prove addition/removal: a missed detection or absent view looks the same. */
 // Handheld walkthroughs move the camera, so "moved" can't come from box positions;
 // it is set on the pair by the Muse Spark comparison (item.moved).
 export function changeStatus(p: MatchedPair): ChangeStatus {
-  if (!p.after) return "removed";
-  if (!p.before) return "added";
+  if (!p.before || !p.after) return "unresolved";
   return p.before.moved || p.after.moved ? "moved" : "unchanged";
 }

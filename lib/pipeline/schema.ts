@@ -1,7 +1,7 @@
 // JSON schema + validator for Muse Spark's judge output. Dependency-free; never trust model JSON blindly.
 import type { Verdict } from "./types";
 
-export const VERDICTS: Verdict[] = ["no_change", "fair_wear", "damage", "cleaning", "missing", "added"];
+export const VERDICTS: Verdict[] = ["no_change", "fair_wear", "damage", "cleaning", "missing", "added", "unresolved"];
 
 export const JUDGE_SCHEMA = {
   type: "object",

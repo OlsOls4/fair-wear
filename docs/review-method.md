@@ -13,6 +13,7 @@ Fair Wear is an evidence-review prototype. It separates three questions that a m
 - Fair wear, mould cleaning, and damage below 90% model confidence: **Dispute**.
 - Other cleaning and damage at or above 90%: **Agree**.
 - No change: **Not claimed**.
+- Unresolved comparisons: **Dispute** pending comparable records and human review, with no replacement-life illustration. An absent observation is not proof that an item is missing or added.
 - Invalid damage confidence and unspecified verdicts: **Dispute** for review.
 
 These are suggestions, not user consent or findings of liability. The model's confidence is uncalibrated; 90% is a review-rule threshold, not evidence of 90% accuracy. The display avoids rounding an under-threshold value up to 90%.

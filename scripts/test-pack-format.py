@@ -18,6 +18,9 @@ for value in [None, -1, float("nan"), float("inf"), True]:
 assert "withheld" in pack.share_label({**legacy, "ageYears": 0, "calculationBasis": {**basis, "qualityBasis": " "}})
 assert "withheld" in pack.share_label({**legacy, "ageYears": 0, "calculationBasis": {**basis, "usefulLifeYears": 0}})
 assert pack.share_label({**legacy, "ageYears": 99, "calculationBasis": basis}) == "0% illustrative remaining life"
+assert pack.share_label({**legacy, "verdict": "unresolved", "ageYears": 0, "calculationBasis": basis}) == "Not applicable"
+assert "unresolved" in pack.VERDICT_ORDER
+assert pack.VERDICT_LABELS["unresolved"] == "UNRESOLVED: NEEDS EVIDENCE"
 print("Passed offline pack formatter checks; no artifacts generated.")
 
 for value, expected in [(0.89999, "under 90%"), (0.9, "90%"), (0.894, "89.4%"), (0.99999, "over 99.99%"), (1, "100%"), (0, "0%"), (0.000001, "under 0.01%"), (None, "unavailable"), (True, "unavailable"), (-1, "unavailable"), (float("nan"), "unavailable"), (1.1, "unavailable")]:

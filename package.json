@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx scripts/test-decisions.ts && node --import tsx scripts/test-reply.ts && node --import tsx scripts/test-judge.ts && node --import tsx scripts/test-judge-failures.ts && node --import tsx scripts/test-share-pipeline.ts && node --import tsx scripts/test-budget.ts",
+    "test": "node --import tsx scripts/test-decisions.ts && node --import tsx scripts/test-reply.ts && node --import tsx scripts/test-judge.ts && node --import tsx scripts/test-judge-failures.ts && node --import tsx scripts/test-share-pipeline.ts && node --import tsx scripts/test-unresolved.ts && node --import tsx scripts/test-flat-eval.ts && node --import tsx scripts/test-budget.ts",
     "test:ui:dom": "node --import tsx scripts/test-ui-dom.tsx",
     "evidence:build": "node --import tsx scripts/build-evidence-manifest.ts",
     "evidence:check": "node --import tsx scripts/build-evidence-manifest.ts --check",

@@ -22,16 +22,16 @@ async function main() {
     before: { id: "before", visit: "move_in", room: "bedroom", label: "carpet", bestFrame: { visit: "move_in", room: "bedroom", t: 0, url: "offline-fixture" } },
   };
   const unknown = await judge(pair, 2);
-  assert.equal(unknown.verdict, "missing");
+  assert.equal(unknown.verdict, "unresolved");
   assert.equal(unknown.ageYears, undefined);
   assert.equal(unknown.usefulLifeYears, undefined);
   assert.equal(unknown.apportionmentPct, undefined);
-  assert.equal(unknown.shareCalculation?.status, "needs_inputs");
-  assert.deepEqual(unknown.shareCalculation?.missingInputs, ["age_at_move_in", "useful_life", "quality_basis"]);
+  assert.equal(unknown.shareCalculation?.status, "not_applicable");
+  assert.deepEqual(unknown.shareCalculation?.missingInputs, []);
   const basis = { usefulLifeYears: 7, qualityBasis: "Explicit illustrative carpet assumption" };
   const supplied = await judge(pair, 2, 0, basis);
-  assert.equal(supplied.apportionmentPct, 71);
-  assert.equal(supplied.shareCalculation?.status, "illustrative");
+  assert.equal(supplied.apportionmentPct, undefined);
+  assert.equal(supplied.shareCalculation?.status, "not_applicable");
   assert.deepEqual(supplied.calculationBasis, basis);
   assert.equal(supplied.ageYears, 0);
   console.log("Passed offline judge assumption propagation checks; no network calls.");

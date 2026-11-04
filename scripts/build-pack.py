@@ -10,6 +10,10 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 
+VERDICT_ORDER = ["damage", "missing", "cleaning", "fair_wear", "added", "unresolved"]
+VERDICT_LABELS = {"damage": "DAMAGE", "fair_wear": "FAIR WEAR & TEAR", "cleaning": "CLEANING", "missing": "MISSING", "added": "ADDED", "unresolved": "UNRESOLVED: NEEDS EVIDENCE"}
+
+
 def finite_nonnegative(value):
     return isinstance(value, (float, int)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
 
@@ -54,8 +58,7 @@ def main():
     output = Path(os.environ.get("FAIRWEAR_DEMO_OUTPUT_DIR", "public/demo"))
     res = json.loads((source / "flat-results.json").read_text())
     reply = json.loads((source / "reply-draft.json").read_text())
-    order = ["damage", "missing", "cleaning", "fair_wear", "added"]
-    labels = {"damage": "DAMAGE", "fair_wear": "FAIR WEAR & TEAR", "cleaning": "CLEANING", "missing": "MISSING", "added": "ADDED"}
+    order, labels = VERDICT_ORDER, VERDICT_LABELS
     fl = sorted([f for f in res["findings"] if f["verdict"] != "no_change"], key=lambda f: order.index(f["verdict"]))
     assert len(fl) == len(reply["refs"]), "findings changed since reply draft was made; rerun make-reply.ts"
     for i, f in enumerate(fl):

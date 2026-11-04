@@ -10,6 +10,7 @@ export interface DecisionFinding {
 export const DECISIONS: Decision[] = ["Agree", "Dispute", "Not claimed"];
 
 export function defaultDecisionReason(finding: DecisionFinding): string {
+  if (finding.verdict === "unresolved") return "The evidence is insufficient to establish a change. Dispute is suggested pending comparable records and human review.";
   if (finding.verdict === "no_change") return "No change was reported, so Not claimed is the suggested response.";
   if (finding.verdict === "fair_wear") return "The model reported fair wear, so the suggested response is Dispute.";
   if (finding.verdict === "cleaning") return /\bmou?ld\b/i.test(finding.description)

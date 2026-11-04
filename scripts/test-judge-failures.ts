@@ -81,10 +81,11 @@ async function main() {
   await assert.rejects(judge(pair, 2), JudgeValidationError);
   const fixture = await judge({ ...pair, after: undefined }, 2);
   assert.equal(fixture.simulated, true);
-  assert.equal(fixture.confidence, 0);
-  assert.equal(fixture.verdict, "missing");
-  assert.match(fixture.description, /Mock mode/);
-  passed("MOCK matched pairs fail closed and structural test fixtures stay explicitly simulated");
+  assert.equal(fixture.confidence, null);
+  assert.equal(fixture.verdict, "unresolved");
+  assert.match(fixture.description, /No matched move-out observation/);
+  assert.equal(fixture.judgementSource, "evidence_gap");
+  passed("MOCK matched pairs fail closed and one-sided observations remain unresolved");
 
   const { POST } = await import("../app/api/analyze/route");
   for (const body of ["{}", "null", "invalid JSON", JSON.stringify({ rooms: [{ room: "bedroom", moveInUrl: "offline-before", moveOutUrl: "offline-after" }] })]) {
